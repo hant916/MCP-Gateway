@@ -1,0 +1,1470 @@
+{
+	"info": {
+		"_postman_id": "ead07813-7537-48cf-aa13-5a6a76910e29",
+		"name": "MCP Gateway API Collection - Enhanced",
+		"description": "Complete collection for MCP Gateway Service APIs with session-based transport management and billing system",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "453418",
+		"version": "2.0.0"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var response = JSON.parse(responseBody);",
+									"    pm.collectionVariables.set('jwt_token', response.token);",
+									"    pm.collectionVariables.set('user_id', response.userId);",
+									"    pm.test('JWT token is set', () => {",
+									"        pm.expect(pm.collectionVariables.get('jwt_token')).to.not.be.empty;",
+									"    });",
+									"    pm.test('User ID is set', () => {",
+									"        pm.expect(pm.collectionVariables.get('user_id')).to.not.be.empty;",
+									"    });",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"testuser\",\n    \"password\": \"password123\",\n    \"email\": \"test@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Authenticate User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var response = JSON.parse(responseBody);",
+									"    pm.collectionVariables.set('jwt_token', response.token);",
+									"    pm.collectionVariables.set('user_id', response.userId);",
+									"    pm.test('JWT token is set', () => {",
+									"        pm.expect(pm.collectionVariables.get('jwt_token')).to.not.be.empty;",
+									"    });",
+									"    pm.test('User ID is set', () => {",
+									"        pm.expect(pm.collectionVariables.get('user_id')).to.not.be.empty;",
+									"    });",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"testuser\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/authenticate",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"authenticate"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "MCP Servers",
+			"item": [
+				{
+					"name": "Register MCP Server",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var response = JSON.parse(responseBody);",
+									"    pm.collectionVariables.set('server_id', response.serverId);",
+									"    pm.test('server_id is set', () => {",
+									"        pm.expect(pm.collectionVariables.get('server_id')).to.not.be.empty;",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serviceName\": \"Awesome MCP Server\",\n    \"description\": \"Awesome MCP server with billing support\",\n    \"iconUrl\": \"https://example.com/icon.png\",\n    \"repositoryUrl\": \"https://github.com/hant916\",\n    \"transport\": {\n        \"type\": \"SSE\",\n        \"config\": {\n            \"serviceEndpoint\": \"https://remote-aiai.tianyi-han.workers.dev/sse\",\n            \"messageEndpoint\": \"https://remote-aiai.tianyi-han.workers.dev/sse/message\",\n            \"sessionIdLocation\": \"QUERY_PARAM\",\n            \"sessionIdParamName\": \"sessionId\"\n        }\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/mcp-server/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"mcp-server",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get MCP Server Config",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/mcp-server/{{server_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"mcp-server",
+								"{{server_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Test MCP Server Connection",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/mcp-server/{{server_id}}/test-connection",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"mcp-server",
+								"{{server_id}}",
+								"test-connection"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get MCP Server Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/mcp-server/{{server_id}}/status",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"mcp-server",
+								"{{server_id}}",
+								"status"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update MCP Server Status",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"ACTIVE\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/mcp-server/{{server_id}}/status",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"mcp-server",
+								"{{server_id}}",
+								"status"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Session Management",
+			"item": [
+				{
+					"name": "Create Session",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var response = pm.response.json();",
+									"    pm.collectionVariables.set('session_id', response.sessionId);",
+									"    pm.test('Session ID is set', () => {",
+									"        pm.expect(pm.collectionVariables.get('session_id')).to.not.be.empty;",
+									"    });",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"transportType\": \"SSE\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/mcp-server/{{server_id}}/sessions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"mcp-server",
+								"{{server_id}}",
+								"sessions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create WebSocket Session",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"transportType\": \"WEBSOCKET\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/mcp-server/{{server_id}}/sessions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"mcp-server",
+								"{{server_id}}",
+								"sessions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Streamable HTTP Session",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"transportType\": \"STREAMABLE_HTTP\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/mcp-server/{{server_id}}/sessions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"mcp-server",
+								"{{server_id}}",
+								"sessions"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Session Transport",
+			"item": [
+				{
+					"name": "Get Session Status",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Session status is valid', () => {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response.sessionId).to.equal(pm.collectionVariables.get('session_id'));",
+									"    pm.expect(response.status).to.be.oneOf(['CREATED', 'CONNECTED', 'ACTIVE', 'EXPIRED', 'CLOSED']);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/{{session_id}}/status",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								"{{session_id}}",
+								"status"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Establish SSE Connection",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('SSE connection established', () => {",
+									"    pm.expect(pm.response.headers.get('Content-Type')).to.include('text/event-stream');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "text/event-stream"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/{{session_id}}/sse",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								"{{session_id}}",
+								"sse"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Send SSE Message (Standard Format)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Message sent successfully', () => {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response.status).to.equal('Message sent');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"type\": \"invoke_tool\",\n    \"tool\": \"file_search\",\n    \"arguments\": {\n        \"query\": \"hello world\",\n        \"path\": \"/home/user\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/sse/message?sessionId={{session_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sse",
+								"message"
+							],
+							"query": [
+								{
+									"key": "sessionId",
+									"value": "{{session_id}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Send SSE Message (JSON-RPC Format)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('JSON-RPC message sent successfully', () => {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response.status).to.equal('Message sent');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"tools/list\",\n    \"params\": {\n        \"category\": \"filesystem\"\n    },\n    \"id\": \"{{$guid}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/sse/message?sessionId={{session_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sse",
+								"message"
+							],
+							"query": [
+								{
+									"key": "sessionId",
+									"value": "{{session_id}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Send Streamable HTTP Request",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Streamable HTTP request successful', () => {",
+									"    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/octet-stream');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"type\": \"invoke_tool\",\n    \"tool\": \"code_analysis\",\n    \"arguments\": {\n        \"language\": \"javascript\",\n        \"code\": \"function hello() { return 'Hello World'; }\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/{{session_id}}/streamable-http",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								"{{session_id}}",
+								"streamable-http"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Billing System",
+			"description": "Pay-for-Usage billing and usage tracking APIs",
+			"item": [
+				{
+					"name": "Health Check",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Billing service is healthy', () => {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response.status).to.equal('healthy');",
+									"    pm.expect(response.service).to.equal('billing');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/billing/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"billing",
+								"health"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current Cost",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Current cost response is valid', () => {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response).to.have.property('userId');",
+									"    pm.expect(response).to.have.property('currentCost');",
+									"    pm.expect(response).to.have.property('currency');",
+									"    pm.expect(response.currency).to.equal('USD');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/billing/cost/current?userId={{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"billing",
+								"cost",
+								"current"
+							],
+							"query": [
+								{
+									"key": "userId",
+									"value": "{{user_id}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Usage Records",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Usage records response is valid', () => {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response).to.have.property('content');",
+									"    pm.expect(response).to.have.property('pageable');",
+									"    pm.expect(response).to.have.property('totalElements');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/billing/usage?userId={{user_id}}&page=0&size=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"billing",
+								"usage"
+							],
+							"query": [
+								{
+									"key": "userId",
+									"value": "{{user_id}}"
+								},
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "20"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Usage Records with Date Range",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Date-filtered usage records response is valid', () => {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response).to.have.property('content');",
+									"    pm.expect(response.content).to.be.an('array');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/billing/usage?userId={{user_id}}&startTime=2024-01-01T00:00:00Z&endTime=2024-12-31T23:59:59Z&page=0&size=50",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"billing",
+								"usage"
+							],
+							"query": [
+								{
+									"key": "userId",
+									"value": "{{user_id}}"
+								},
+								{
+									"key": "startTime",
+									"value": "2024-01-01T00:00:00Z"
+								},
+								{
+									"key": "endTime",
+									"value": "2024-12-31T23:59:59Z"
+								},
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "50"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Session Usage Records",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Session usage records response is valid', () => {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response).to.be.an('array');",
+									"    if (response.length > 0) {",
+									"        pm.expect(response[0]).to.have.property('sessionId');",
+									"        pm.expect(response[0]).to.have.property('apiEndpoint');",
+									"        pm.expect(response[0]).to.have.property('costAmount');",
+									"    }",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/billing/usage/session/{{session_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"billing",
+								"usage",
+								"session",
+								"{{session_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Usage Summary",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Usage summary response is valid', () => {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response).to.have.property('userId');",
+									"    pm.expect(response).to.have.property('totalCalls');",
+									"    pm.expect(response).to.have.property('totalCost');",
+									"    pm.expect(response).to.have.property('periodStart');",
+									"    pm.expect(response).to.have.property('periodEnd');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/billing/usage/summary?userId={{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"billing",
+								"usage",
+								"summary"
+							],
+							"query": [
+								{
+									"key": "userId",
+									"value": "{{user_id}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Usage Summary with Date Range",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Date-filtered usage summary is valid', () => {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response).to.have.property('apiEndpointStats');",
+									"    pm.expect(response).to.have.property('dailyStats');",
+									"    pm.expect(response).to.have.property('statusStats');",
+									"    pm.expect(response.apiEndpointStats).to.be.an('array');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/billing/usage/summary?userId={{user_id}}&startTime=2024-01-01T00:00:00Z&endTime=2024-12-31T23:59:59Z",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"billing",
+								"usage",
+								"summary"
+							],
+							"query": [
+								{
+									"key": "userId",
+									"value": "{{user_id}}"
+								},
+								{
+									"key": "startTime",
+									"value": "2024-01-01T00:00:00Z"
+								},
+								{
+									"key": "endTime",
+									"value": "2024-12-31T23:59:59Z"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Test Record Usage",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Test usage recording successful', () => {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response.status).to.equal('success');",
+									"    pm.expect(response).to.have.property('sessionId');",
+									"    pm.expect(response).to.have.property('apiEndpoint');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/billing/test/record?sessionId={{session_id}}&apiEndpoint=/api/v1/test&httpMethod=POST&statusCode=200&requestSize=1024&responseSize=2048&processingMs=150",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"billing",
+								"test",
+								"record"
+							],
+							"query": [
+								{
+									"key": "sessionId",
+									"value": "{{session_id}}"
+								},
+								{
+									"key": "apiEndpoint",
+									"value": "/api/v1/test"
+								},
+								{
+									"key": "httpMethod",
+									"value": "POST"
+								},
+								{
+									"key": "statusCode",
+									"value": "200"
+								},
+								{
+									"key": "requestSize",
+									"value": "1024"
+								},
+								{
+									"key": "responseSize",
+									"value": "2048"
+								},
+								{
+									"key": "processingMs",
+									"value": "150"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Complete Workflows",
+			"item": [
+				{
+					"name": "Complete SSE Workflow with Billing",
+					"item": [
+						{
+							"name": "1. Authenticate",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.code === 200) {",
+											"    var response = JSON.parse(responseBody);",
+											"    pm.collectionVariables.set('jwt_token', response.token);",
+											"    pm.collectionVariables.set('user_id', response.userId);",
+											"}"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"username\": \"testuser\",\n    \"password\": \"password123\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/auth/authenticate",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"auth",
+										"authenticate"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "2. Register MCP Server",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.code === 200) {",
+											"    var response = JSON.parse(responseBody);",
+											"    pm.collectionVariables.set('server_id', response.serverId);",
+											"}"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"serviceName\": \"FileSystemMCP\",\n    \"description\": \"File system MCP service with billing\",\n    \"transport\": {\n        \"type\": \"SSE\",\n        \"config\": {\n            \"serviceEndpoint\": \"https://remote-aiai.tianyi-han.workers.dev/sse\",\n            \"messageEndpoint\": \"https://remote-aiai.tianyi-han.workers.dev/sse/message\",\n            \"sessionIdLocation\": \"QUERY_PARAM\",\n            \"sessionIdParamName\": \"sessionId\"\n        }\n    }\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/mcp-server/register",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"mcp-server",
+										"register"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "3. Create SSE Session",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.code === 200) {",
+											"    var response = pm.response.json();",
+											"    pm.collectionVariables.set('session_id', response.sessionId);",
+											"}"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"transportType\": \"SSE\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/mcp-server/{{server_id}}/sessions",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"mcp-server",
+										"{{server_id}}",
+										"sessions"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "4. Establish SSE Connection",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									},
+									{
+										"key": "Accept",
+										"value": "text/event-stream"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/sessions/{{session_id}}/sse",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"sessions",
+										"{{session_id}}",
+										"sse"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "5. Send JSON-RPC Message",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"tools/list\",\n    \"params\": {\n        \"category\": \"filesystem\"\n    },\n    \"id\": \"{{$guid}}\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/sse/message?sessionId={{session_id}}",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"sse",
+										"message"
+									],
+									"query": [
+										{
+											"key": "sessionId",
+											"value": "{{session_id}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "6. Check Current Cost",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/billing/cost/current?userId={{user_id}}",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"billing",
+										"cost",
+										"current"
+									],
+									"query": [
+										{
+											"key": "userId",
+											"value": "{{user_id}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "7. Get Session Usage Records",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/billing/usage/session/{{session_id}}",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"billing",
+										"usage",
+										"session",
+										"{{session_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "8. Get Usage Summary",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/billing/usage/summary?userId={{user_id}}",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"billing",
+										"usage",
+										"summary"
+									],
+									"query": [
+										{
+											"key": "userId",
+											"value": "{{user_id}}"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Global pre-request script",
+					"if (!pm.collectionVariables.get('jwt_token')) {",
+					"    console.log('No JWT token found. Please authenticate first.');",
+					"}",
+					"",
+					"// Add timestamp to requests",
+					"pm.variables.set('timestamp', new Date().toISOString());"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Global test script",
+					"pm.test('Response time is acceptable', () => {",
+					"    pm.expect(pm.response.responseTime).to.be.below(5000);",
+					"});",
+					"",
+					"pm.test('Status code is successful', () => {",
+					"    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]);",
+					"});",
+					"",
+					"if (pm.response.code === 401) {",
+					"    console.log('Authentication failed. Please check your JWT token.');",
+					"}",
+					"",
+					"// Log billing information if available",
+					"if (pm.response.json && pm.response.json().costAmount) {",
+					"    console.log('Cost for this request: $' + pm.response.json().costAmount);",
+					"}"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "api_path",
+			"value": "/api/v1",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "server_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "session_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+} 

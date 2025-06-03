@@ -1,0 +1,802 @@
+openapi: 3.0.3
+info:
+  title: MCP Gateway API
+  description: Comprehensive MCP Gateway with session-based transport management and pay-for-usage billing
+  version: 2.0.0
+  contact:
+    name: MCP Gateway Support
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # Authentication Schemas
+    AuthenticationRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    RegisterRequest:
+      type: object
+      required:
+        - username
+        - password
+        - email
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        email:
+          type: string
+          format: email
+
+    AuthenticationResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        username:
+          type: string
+        userId:
+          type: string
+          format: uuid
+
+    # MCP Server Configuration Schemas
+    RegisterMcpServerRequest:
+      type: object
+      required:
+        - serviceName
+        - transport
+      properties:
+        serviceName:
+          type: string
+        description:
+          type: string
+        iconUrl:
+          type: string
+        repositoryUrl:
+          type: string
+        transport:
+          $ref: '#/components/schemas/TransportConfig'
+
+    TransportConfig:
+      type: object
+      required:
+        - type
+        - config
+      properties:
+        type:
+          type: string
+          enum: [SSE, WEBSOCKET, STREAMABLE_HTTP, STDIO]
+        config:
+          $ref: '#/components/schemas/TransportEndpoints'
+
+    TransportEndpoints:
+      type: object
+      required:
+        - serviceEndpoint
+      properties:
+        serviceEndpoint:
+          type: string
+        messageEndpoint:
+          type: string
+        sessionIdLocation:
+          type: string
+          enum: [QUERY_PARAM, HEADER, PATH_PARAM]
+        sessionIdParamName:
+          type: string
+
+    McpServerResponse:
+      type: object
+      properties:
+        serverId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [REGISTERED, ACTIVE, INACTIVE, ERROR]
+        serviceUrl:
+          type: string
+
+    # Session Management Schemas
+    CreateSessionRequest:
+      type: object
+      required:
+        - transportType
+      properties:
+        transportType:
+          type: string
+          enum: [SSE, WEBSOCKET, STREAMABLE_HTTP, STDIO]
+
+    SessionDTO:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+        transportType:
+          type: string
+          enum: [SSE, WEBSOCKET, STREAMABLE_HTTP, STDIO]
+        status:
+          type: string
+          enum: [CREATED, CONNECTED, ACTIVE, EXPIRED, CLOSED]
+        endpoints:
+          type: object
+          additionalProperties:
+            type: string
+        expiresAt:
+          type: string
+          format: date-time
+
+    # Message Schemas
+    MessageRequest:
+      type: object
+      properties:
+        # Standard format
+        type:
+          type: string
+        tool:
+          type: string
+        arguments:
+          type: object
+        data:
+          type: object
+        # JSON-RPC format
+        jsonrpc:
+          type: string
+          example: "2.0"
+        method:
+          type: string
+        params:
+          type: object
+        id:
+          type: string
+
+    # Billing Schemas
+    BillingHealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "healthy"
+        service:
+          type: string
+          example: "billing"
+        timestamp:
+          type: string
+          format: date-time
+
+    CurrentCostResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        currentCost:
+          type: number
+          format: double
+        currency:
+          type: string
+          example: "USD"
+        timestamp:
+          type: string
+          format: date-time
+
+    UsageRecord:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        sessionId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        apiEndpoint:
+          type: string
+        httpMethod:
+          type: string
+        statusCode:
+          type: integer
+        requestSize:
+          type: integer
+          format: int64
+        responseSize:
+          type: integer
+          format: int64
+        processingMs:
+          type: integer
+        costAmount:
+          type: number
+          format: double
+        messageType:
+          type: string
+        billingStatus:
+          type: string
+          enum: [SUCCESS, FAILED, PENDING]
+
+    UsageRecordsResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/UsageRecord'
+        pageable:
+          type: object
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+
+    UsageSummary:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        totalCalls:
+          type: integer
+        totalCost:
+          type: number
+          format: double
+        periodStart:
+          type: string
+          format: date-time
+        periodEnd:
+          type: string
+          format: date-time
+        apiEndpointStats:
+          type: array
+          items:
+            type: object
+            properties:
+              endpoint:
+                type: string
+              calls:
+                type: integer
+              cost:
+                type: number
+                format: double
+        dailyStats:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              calls:
+                type: integer
+              cost:
+                type: number
+                format: double
+        statusStats:
+          type: object
+          additionalProperties:
+            type: integer
+
+    # Common Response Schemas
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+paths:
+  # Authentication Endpoints
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      operationId: registerUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '200':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationResponse'
+
+  /auth/authenticate:
+    post:
+      tags:
+        - Authentication
+      summary: Authenticate a user
+      operationId: authenticateUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthenticationRequest'
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationResponse'
+
+  # MCP Server Configuration Endpoints
+  /mcp-server/register:
+    post:
+      tags:
+        - MCP Server Configuration
+      summary: Register a new MCP server configuration
+      operationId: registerMcpServer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterMcpServerRequest'
+            example:
+              serviceName: "MyMCPService"
+              description: "My MCP Service Description"
+              iconUrl: "https://example.com/icon.png"
+              repositoryUrl: "https://github.com/your-repo"
+              transport:
+                type: "SSE"
+                config:
+                  serviceEndpoint: "https://your-service.com/sse"
+                  messageEndpoint: "https://your-service.com/message"
+                  sessionIdLocation: "QUERY_PARAM"
+                  sessionIdParamName: "sessionId"
+      responses:
+        '200':
+          description: MCP server registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/McpServerResponse'
+
+  /mcp-server/{serverId}:
+    get:
+      tags:
+        - MCP Server Configuration
+      summary: Get MCP server configuration details
+      operationId: getMcpServerConfig
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: MCP server configuration details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/McpServerResponse'
+
+  /mcp-server/{serverId}/test-connection:
+    post:
+      tags:
+        - MCP Server Configuration
+      summary: Test connection to MCP server
+      operationId: testMcpServerConnection
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Connection test result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+
+  /mcp-server/{serverId}/status:
+    get:
+      tags:
+        - MCP Server Configuration
+      summary: Get MCP server status
+      operationId: getMcpServerStatus
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: MCP server status
+
+    put:
+      tags:
+        - MCP Server Configuration
+      summary: Update MCP server status
+      operationId: updateMcpServerStatus
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [REGISTERED, ACTIVE, INACTIVE, ERROR]
+      responses:
+        '200':
+          description: Status updated successfully
+
+  # Session Management Endpoints
+  /mcp-server/{serverId}/sessions:
+    post:
+      tags:
+        - Session Management
+      summary: Create a new session for an MCP server
+      operationId: createMcpSession
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSessionRequest'
+            example:
+              transportType: "SSE"
+      responses:
+        '200':
+          description: Session created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionDTO'
+
+  # Session Transport Endpoints
+  /sessions/{sessionId}/sse:
+    get:
+      tags:
+        - Session Transport
+      summary: Establish SSE connection
+      operationId: establishSseConnection
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: SSE connection established
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+  /sse/message:
+    post:
+      tags:
+        - Session Transport
+      summary: Send message via SSE
+      operationId: sendSseMessage
+      parameters:
+        - name: sessionId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageRequest'
+            examples:
+              standard_format:
+                summary: Standard message format
+                value:
+                  type: "invoke_tool"
+                  tool: "file_search"
+                  arguments:
+                    query: "hello world"
+              jsonrpc_format:
+                summary: JSON-RPC format
+                value:
+                  jsonrpc: "2.0"
+                  method: "tools/list"
+                  params: {}
+                  id: "request-1"
+      responses:
+        '200':
+          description: Message sent successfully
+
+  /sessions/{sessionId}/streamable-http:
+    post:
+      tags:
+        - Session Transport
+      summary: Handle streamable HTTP request
+      operationId: handleStreamableHttp
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageRequest'
+      responses:
+        '200':
+          description: Streaming response
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /sessions/{sessionId}/status:
+    get:
+      tags:
+        - Session Transport
+      summary: Get session status
+      operationId: getSessionStatus
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Session status
+
+  # Billing System Endpoints
+  /billing/health:
+    get:
+      tags:
+        - Billing System
+      summary: Check billing service health
+      operationId: getBillingHealth
+      responses:
+        '200':
+          description: Billing service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingHealthResponse'
+
+  /billing/cost/current:
+    get:
+      tags:
+        - Billing System
+      summary: Get current accumulated cost for user
+      operationId: getCurrentCost
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Current cost retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentCostResponse'
+
+  /billing/usage:
+    get:
+      tags:
+        - Billing System
+      summary: Get usage records with pagination and filtering
+      operationId: getUsageRecords
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: startTime
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: endTime
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Usage records retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageRecordsResponse'
+
+  /billing/usage/session/{sessionId}:
+    get:
+      tags:
+        - Billing System
+      summary: Get usage records for specific session
+      operationId: getSessionUsageRecords
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Session usage records retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UsageRecord'
+
+  /billing/usage/summary:
+    get:
+      tags:
+        - Billing System
+      summary: Get detailed usage summary and analytics
+      operationId: getUsageSummary
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: startTime
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: endTime
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Usage summary retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageSummary'
+
+  /billing/test/record:
+    post:
+      tags:
+        - Billing System
+      summary: Test usage recording functionality
+      operationId: testRecordUsage
+      parameters:
+        - name: sessionId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: apiEndpoint
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: httpMethod
+          in: query
+          schema:
+            type: string
+            default: "GET"
+        - name: statusCode
+          in: query
+          schema:
+            type: integer
+            default: 200
+        - name: requestSize
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: responseSize
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: processingMs
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Test usage recorded successfully
+
+tags:
+  - name: Authentication
+    description: User authentication and registration
+  - name: MCP Server Configuration
+    description: Configuration and management of MCP servers
+  - name: Session Management
+    description: Creating and managing sessions for MCP servers
+  - name: Session Transport
+    description: Transport protocol handling for sessions
+  - name: Billing System
+    description: Pay-for-usage billing and usage analytics 
