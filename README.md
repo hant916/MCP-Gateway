@@ -10,10 +10,10 @@ A comprehensive Spring Boot-based MCP (Model Context Protocol) Gateway that prov
 - **User Registration**: Complete user management system
 
 ### 🌐 Transport Protocols
-- **SSE (Server-Sent Events)**: Real-time bidirectional streaming
-- **WebSocket**: Full-duplex communication (ready)
-- **Streamable HTTP**: Streaming HTTP responses (ready)
-- **STDIO**: Standard input/output transport (ready)
+- **SSE (Server-Sent Events)**: Real-time bidirectional streaming ✅ **Fully Implemented**
+- **Streamable HTTP**: MCP standard remote transport (2025) ✅ **Fully Implemented**
+- **WebSocket**: Full-duplex real-time communication ✅ **Fully Implemented**
+- **STDIO**: Local process communication ✅ **Fully Implemented**
 
 ### 💰 Pay-for-Usage Billing
 - **Real-time Usage Tracking**: Automatic API call recording
@@ -107,6 +107,8 @@ Authorization: Bearer {jwt_token}
 ```
 
 ### 3. Create Session and Connect
+
+#### Option 1: SSE (Server-Sent Events)
 ```bash
 # Create session
 POST /api/v1/mcp-server/{serverId}/sessions
@@ -125,6 +127,64 @@ POST /api/v1/sse/message?sessionId={sessionId}
     "method": "tools/list",
     "params": {},
     "id": "request-1"
+}
+```
+
+#### Option 2: Streamable HTTP (Recommended for MCP 2025)
+```bash
+# Create session
+POST /api/v1/mcp-server/{serverId}/sessions
+{
+    "transportType": "STREAMABLE_HTTP"
+}
+
+# Establish Streamable HTTP connection
+GET /api/v1/sessions/{sessionId}/streamable-http
+Accept: application/x-ndjson
+
+# Send messages
+POST /api/v1/streamable-http/message?sessionId={sessionId}
+{
+    "jsonrpc": "2.0",
+    "method": "tools/call",
+    "params": {"name": "example_tool"},
+    "id": "req-1"
+}
+```
+
+#### Option 3: WebSocket (Full-Duplex)
+```bash
+# Create session
+POST /api/v1/mcp-server/{serverId}/sessions
+{
+    "transportType": "WEBSOCKET"
+}
+
+# Connect via WebSocket
+ws://localhost:8080/ws/sessions/{sessionId}
+
+# Send/receive messages over WebSocket bidirectionally
+```
+
+#### Option 4: STDIO (Local Process)
+```bash
+# Create session
+POST /api/v1/mcp-server/{serverId}/sessions
+{
+    "transportType": "STDIO"
+}
+
+# Establish STDIO connection (starts local process)
+GET /api/v1/sessions/{sessionId}/stdio
+Accept: text/plain
+
+# Send messages to process stdin
+POST /api/v1/stdio/message?sessionId={sessionId}
+{
+    "jsonrpc": "2.0",
+    "method": "initialize",
+    "params": {},
+    "id": "init-1"
 }
 ```
 
@@ -225,9 +285,24 @@ src/main/resources/
 └── application.yml     # Application configuration
 ```
 
+## 🔀 Transport Protocol Selection Guide
+
+| Transport | Use Case | Pros | Cons |
+|-----------|----------|------|------|
+| **Streamable HTTP** | Remote MCP servers (recommended for 2025) | Standard HTTP, firewall-friendly, simple | HTTP overhead |
+| **SSE** | Remote servers (legacy support) | Real-time, HTTP-based, widely supported | One-way server push |
+| **WebSocket** | Real-time bidirectional | Full-duplex, low latency | More complex, firewall issues |
+| **STDIO** | Local MCP processes/tools | Direct process communication, fast | Local only, process management needed |
+
+### When to Use Each Transport:
+
+- **Use Streamable HTTP**: For production remote MCP servers (MCP standard 2025)
+- **Use SSE**: For legacy MCP servers or when backward compatibility is needed
+- **Use WebSocket**: When you need true bidirectional real-time communication
+- **Use STDIO**: For local MCP tools, CLI utilities, or subprocess communication
+
 ## 🔮 Features Ready for Extension
 
-- **WebSocket Transport**: Framework ready
 - **OAuth2 Integration**: Structure in place
 - **Microservices**: Billing system ready for separation
 - **Real-time Notifications**: Event-driven architecture

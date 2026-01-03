@@ -79,28 +79,39 @@ Client ←→ MCP Gateway ←→ Upstream MCP Server
    └──► Billing Service
 ```
 
-### Supported Transport Types
+### Supported Transport Types (All Fully Implemented)
 
-1. **SSE (Server-Sent Events)**
+1. **SSE (Server-Sent Events)** ✅
    - Real-time bidirectional streaming
    - Automatic upstream connection establishment
    - Message format adaptation (JSON-RPC ↔ Standard)
    - Connection lifecycle management
+   - Legacy MCP transport support
+   - Full upstream proxy with billing
 
-2. **WebSocket** (Framework Ready)
+2. **Streamable HTTP** ✅ (MCP Standard 2025)
+   - MCP recommended remote transport
+   - HTTP-based streaming with NDJSON format
+   - Firewall-friendly and simple deployment
+   - Automatic upstream connection and message forwarding
+   - Full billing integration
+   - Queue-based message buffering
+
+3. **WebSocket** ✅
    - Full-duplex real-time communication
-   - Persistent connection management
-   - Message routing and forwarding
+   - Persistent bidirectional connection
+   - Reactive message routing with upstream forwarding
+   - Automatic connection management and cleanup
+   - Low-latency message delivery
+   - Sink-based message flow control
 
-3. **Streamable HTTP** (Framework Ready)
-   - Streaming HTTP responses
-   - Large data transfer optimization
-   - Progressive response handling
-
-4. **STDIO** (Framework Ready)
-   - Standard input/output integration
-   - Command-line tool compatibility
-   - Process-based communication
+4. **STDIO** ✅
+   - Standard input/output process communication
+   - Local MCP server/tool integration
+   - Process lifecycle management (start/stop)
+   - Direct stdin/stdout message passing
+   - Ideal for CLI tools and local services
+   - Thread-based output reading
 
 ## Security Architecture
 
