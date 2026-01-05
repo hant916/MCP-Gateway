@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: mcpgateway-postgres
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-mcpgateway}
+      POSTGRES_USER: ${DATABASE_USERNAME:-mcpgateway}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-changeme}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - mcpgateway-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME:-mcpgateway}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MCP Gateway Application
+  mcpgateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mcpgateway-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${DATABASE_NAME:-mcpgateway}
+      DATABASE_USERNAME: ${DATABASE_USERNAME:-mcpgateway}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-changeme}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-*}
+      JPA_DDL_AUTO: validate
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - mcpgateway-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Optional: Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: mcpgateway-nginx
+    depends_on:
+      - mcpgateway
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    networks:
+      - mcpgateway-network
+    restart: unless-stopped
+
+networks:
+  mcpgateway-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

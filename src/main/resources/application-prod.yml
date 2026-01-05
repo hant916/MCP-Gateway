@@ -1,0 +1,116 @@
+# Production Environment Configuration
+spring:
+  application:
+    name: mcpgateway-spring
+
+  # PostgreSQL Database Configuration (Recommended for Production)
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/mcpgateway}
+    username: ${DATABASE_USERNAME:mcpgateway}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+    # Connection Pool Settings
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:20}
+      minimum-idle: ${DB_POOL_MIN_IDLE:5}
+      connection-timeout: ${DB_CONNECTION_TIMEOUT:30000}
+      idle-timeout: ${DB_IDLE_TIMEOUT:600000}
+      max-lifetime: ${DB_MAX_LIFETIME:1800000}
+      leak-detection-threshold: ${DB_LEAK_DETECTION:60000}
+
+  jpa:
+    hibernate:
+      # IMPORTANT: Use 'validate' in production, NOT 'update'
+      ddl-auto: ${JPA_DDL_AUTO:validate}
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+
+server:
+  port: ${SERVER_PORT:8080}
+
+  # Production server configuration
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+
+  # Error handling
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-exception: false
+
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}
+
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+    com.mcpgateway: ${APP_LOG_LEVEL:INFO}
+    org.springframework.security: ${SECURITY_LOG_LEVEL:WARN}
+    org.springframework.web: ${WEB_LOG_LEVEL:WARN}
+    org.hibernate: ${HIBERNATE_LOG_LEVEL:WARN}
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: ${LOG_FILE:logs/mcpgateway.log}
+    max-size: ${LOG_FILE_MAX_SIZE:10MB}
+    max-history: ${LOG_FILE_MAX_HISTORY:30}
+
+mcp:
+  security:
+    jwt:
+      # REQUIRED: Must be set via environment variable
+      secret-key: ${JWT_SECRET_KEY}
+      expiration: ${JWT_EXPIRATION:86400000} # 1 day
+      refresh-token:
+        expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7 days
+  session:
+    expiration: ${SESSION_EXPIRATION:3600} # 1 hour
+  websocket:
+    endpoint: /ws
+    topic-prefix: /topic
+    application-prefix: /app
+  cors:
+    # IMPORTANT: Restrict to specific origins in production
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://your-frontend.com,https://app.your-domain.com}
+    allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS}
+    allowed-headers: ${CORS_ALLOWED_HEADERS:Authorization,Content-Type,X-Requested-With}
+    allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
+    max-age: ${CORS_MAX_AGE:3600}
+
+h2:
+  console:
+    enabled: false
+
+# Actuator for production monitoring (optional)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: ${PROMETHEUS_ENABLED:false}
