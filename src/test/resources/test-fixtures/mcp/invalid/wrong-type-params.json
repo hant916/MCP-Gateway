@@ -1,0 +1,6 @@
+{
+  "jsonrpc": "2.0",
+  "id": "req-wrong-type",
+  "method": "tools/call",
+  "params": "should be object not string"
+}

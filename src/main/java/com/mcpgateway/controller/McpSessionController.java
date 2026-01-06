@@ -3,6 +3,7 @@ package com.mcpgateway.controller;
 import com.mcpgateway.domain.User;
 import com.mcpgateway.dto.session.CreateSessionRequest;
 import com.mcpgateway.dto.session.SessionDTO;
+import com.mcpgateway.ratelimit.RateLimit;
 import com.mcpgateway.service.McpServerService;
 import com.mcpgateway.service.SessionService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 @RestController
@@ -26,6 +28,8 @@ public class McpSessionController {
 
     @PostMapping
     @Operation(summary = "Create a new session for an MCP server")
+    @RateLimit(limit = 100, window = 60, windowUnit = ChronoUnit.SECONDS, key = "user",
+               errorMessage = "Too many session creation requests. Please try again later.")
     public ResponseEntity<SessionDTO> createSession(
             @PathVariable UUID serverId,
             @Valid @RequestBody CreateSessionRequest request,

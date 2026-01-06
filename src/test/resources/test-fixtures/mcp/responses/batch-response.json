@@ -1,0 +1,25 @@
+[
+  {
+    "jsonrpc": "2.0",
+    "id": "batch-1",
+    "result": {
+      "content": [{"type": "text", "text": "Result: 3"}]
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "id": "batch-2",
+    "result": {
+      "content": [{"type": "text", "text": "Result: 12"}]
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "id": "batch-3",
+    "result": {
+      "tools": [
+        {"name": "calculator", "description": "Math operations"}
+      ]
+    }
+  }
+]

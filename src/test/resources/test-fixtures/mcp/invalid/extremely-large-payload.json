@@ -1,0 +1,11 @@
+{
+  "jsonrpc": "2.0",
+  "id": "large-payload",
+  "method": "tools/call",
+  "params": {
+    "name": "data_processor",
+    "arguments": {
+      "data": "This is a test to simulate an extremely large payload. In a real scenario, this would contain megabytes of data that could potentially cause memory issues or performance degradation. The system should have limits on request size to prevent DoS attacks through resource exhaustion."
+    }
+  }
+}

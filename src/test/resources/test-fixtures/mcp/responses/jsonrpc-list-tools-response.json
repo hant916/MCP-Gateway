@@ -1,0 +1,39 @@
+{
+  "jsonrpc": "2.0",
+  "id": "list-001",
+  "result": {
+    "tools": [
+      {
+        "name": "calculator",
+        "description": "Perform mathematical calculations",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "operation": {
+              "type": "string",
+              "enum": ["add", "subtract", "multiply", "divide"]
+            },
+            "a": {"type": "number"},
+            "b": {"type": "number"}
+          },
+          "required": ["operation", "a", "b"]
+        }
+      },
+      {
+        "name": "weather_lookup",
+        "description": "Get weather information for a city",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "city": {"type": "string"},
+            "units": {
+              "type": "string",
+              "enum": ["celsius", "fahrenheit"]
+            }
+          },
+          "required": ["city"]
+        }
+      }
+    ]
+  }
+}

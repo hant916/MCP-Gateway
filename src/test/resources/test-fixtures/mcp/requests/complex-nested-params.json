@@ -1,0 +1,35 @@
+{
+  "jsonrpc": "2.0",
+  "id": "complex-001",
+  "method": "tools/call",
+  "params": {
+    "name": "data_processor",
+    "arguments": {
+      "config": {
+        "mode": "batch",
+        "filters": [
+          {
+            "type": "date",
+            "operator": ">=",
+            "value": "2024-01-01"
+          },
+          {
+            "type": "status",
+            "operator": "in",
+            "value": ["active", "pending"]
+          }
+        ],
+        "transformations": {
+          "uppercase": ["name", "title"],
+          "lowercase": ["email"],
+          "trim": true
+        }
+      },
+      "metadata": {
+        "userId": "user-12345",
+        "timestamp": "2024-01-15T10:30:00Z",
+        "requestSource": "api"
+      }
+    }
+  }
+}

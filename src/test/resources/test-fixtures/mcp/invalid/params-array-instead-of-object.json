@@ -1,0 +1,6 @@
+{
+  "jsonrpc": "2.0",
+  "id": "req-array-params",
+  "method": "tools/call",
+  "params": ["arg1", "arg2"]
+}

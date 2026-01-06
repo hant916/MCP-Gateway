@@ -1,0 +1,12 @@
+{
+  "type": "tool_call",
+  "tool": "weather_lookup",
+  "arguments": {
+    "city": "San Francisco",
+    "units": "celsius"
+  },
+  "data": {
+    "requestId": "custom-789",
+    "timestamp": "2024-01-15T10:30:00Z"
+  }
+}

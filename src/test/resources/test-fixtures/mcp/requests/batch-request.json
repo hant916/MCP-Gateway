@@ -1,0 +1,26 @@
+[
+  {
+    "jsonrpc": "2.0",
+    "id": "batch-1",
+    "method": "tools/call",
+    "params": {
+      "name": "calculator",
+      "arguments": {"operation": "add", "a": 1, "b": 2}
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "id": "batch-2",
+    "method": "tools/call",
+    "params": {
+      "name": "calculator",
+      "arguments": {"operation": "multiply", "a": 3, "b": 4}
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "id": "batch-3",
+    "method": "tools/list",
+    "params": {}
+  }
+]

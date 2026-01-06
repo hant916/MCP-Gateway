@@ -1,6 +1,7 @@
 package com.mcpgateway.controller;
 
 import com.mcpgateway.dto.tool.McpToolDTO;
+import com.mcpgateway.ratelimit.RateLimit;
 import com.mcpgateway.service.McpToolService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -9,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,12 +25,14 @@ public class McpToolController {
 
     @GetMapping("/api-specification/{apiSpecId}")
     @Operation(summary = "Get all tools for an API specification")
+    @RateLimit(limit = 100, window = 60, windowUnit = ChronoUnit.SECONDS, key = "user")
     public ResponseEntity<List<McpToolDTO>> getToolsByApiSpecification(@PathVariable UUID apiSpecId) {
         return ResponseEntity.ok(mcpToolService.getToolsByApiSpecification(apiSpecId));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Get a tool by ID")
+    @RateLimit(limit = 200, window = 60, windowUnit = ChronoUnit.SECONDS, key = "user")
     public ResponseEntity<McpToolDTO> getTool(@PathVariable UUID id) {
         return ResponseEntity.ok(mcpToolService.getTool(id));
     }

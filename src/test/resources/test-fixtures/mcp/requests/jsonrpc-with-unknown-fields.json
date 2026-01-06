@@ -1,0 +1,18 @@
+{
+  "jsonrpc": "2.0",
+  "id": "req-unknown",
+  "method": "tools/call",
+  "params": {
+    "name": "calculator",
+    "arguments": {
+      "operation": "add",
+      "a": 10,
+      "b": 20
+    }
+  },
+  "unknownField1": "should be ignored",
+  "metadata": {
+    "customExtension": true,
+    "timestamp": "2024-01-15T10:30:00Z"
+  }
+}
