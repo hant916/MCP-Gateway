@@ -131,7 +131,14 @@
             <version>${jjwt.version}</version>
             <scope>runtime</scope>
         </dependency>
-        
+
+        <!-- Stripe Payment Integration -->
+        <dependency>
+            <groupId>com.stripe</groupId>
+            <artifactId>stripe-java</artifactId>
+            <version>24.9.0</version>
+        </dependency>
+
         <!-- Utils -->
         <dependency>
             <groupId>org.projectlombok</groupId>
