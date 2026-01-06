@@ -1,0 +1,6 @@
+{
+  "jsonrpc": "2.0",
+  "id": "malformed"
+  "method": "tools/call",
+  "params": {}
+}

@@ -1,0 +1,6 @@
+{
+  "type": "tool_call",
+  "arguments": {
+    "param1": "value1"
+  }
+}

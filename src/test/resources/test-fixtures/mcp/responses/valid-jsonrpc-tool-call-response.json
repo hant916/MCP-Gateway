@@ -1,0 +1,12 @@
+{
+  "jsonrpc": "2.0",
+  "id": "req-12345",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Result: 8"
+      }
+    ]
+  }
+}

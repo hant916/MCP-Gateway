@@ -1,0 +1,7 @@
+{
+  "id": "req-missing-jsonrpc",
+  "method": "tools/call",
+  "params": {
+    "name": "calculator"
+  }
+}

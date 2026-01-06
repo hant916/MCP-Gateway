@@ -1,0 +1,13 @@
+{
+  "jsonrpc": "2.0",
+  "id": "req-invalid-params",
+  "error": {
+    "code": -32602,
+    "message": "Invalid params",
+    "data": {
+      "field": "arguments.a",
+      "expectedType": "number",
+      "receivedType": "string"
+    }
+  }
+}

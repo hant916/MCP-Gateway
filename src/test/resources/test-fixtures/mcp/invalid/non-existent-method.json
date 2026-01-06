@@ -1,0 +1,6 @@
+{
+  "jsonrpc": "2.0",
+  "id": "req-unknown-method",
+  "method": "nonexistent/method/that/does/not/exist",
+  "params": {}
+}
