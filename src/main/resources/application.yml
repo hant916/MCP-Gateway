@@ -71,6 +71,58 @@ mcp:
     allowed-headers: ${CORS_ALLOWED_HEADERS:*}
     allow-credentials: ${CORS_ALLOW_CREDENTIALS:false}
 
+  # Rate limiting configuration
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+
+    # Global rate limits
+    global:
+      limit: ${RATE_LIMIT_GLOBAL:10000}
+      window-seconds: ${RATE_LIMIT_GLOBAL_WINDOW:3600}
+
+    # Per-user limits
+    per-user:
+      limit: ${RATE_LIMIT_PER_USER:1000}
+      window-seconds: ${RATE_LIMIT_PER_USER_WINDOW:3600}
+
+    # Per-tool limits
+    per-tool:
+      limit: ${RATE_LIMIT_PER_TOOL:100}
+      window-seconds: ${RATE_LIMIT_PER_TOOL_WINDOW:60}
+
+    # Subscription tier quotas
+    subscriptions:
+      free:
+        monthly-quota: 100
+        daily-limit: 10
+        per-minute-limit: 2
+      basic:
+        monthly-quota: 1000
+        daily-limit: 100
+        per-minute-limit: 10
+      pro:
+        monthly-quota: 10000
+        daily-limit: 1000
+        per-minute-limit: 50
+      enterprise:
+        monthly-quota: null  # Unlimited
+        daily-limit: null
+        per-minute-limit: 1000
+
+# Redis Configuration
+spring.data.redis:
+  host: ${REDIS_HOST:localhost}
+  port: ${REDIS_PORT:6379}
+  password: ${REDIS_PASSWORD:}
+  database: ${REDIS_DATABASE:0}
+  timeout: ${REDIS_TIMEOUT:60000}
+  lettuce:
+    pool:
+      max-active: ${REDIS_POOL_MAX_ACTIVE:8}
+      max-idle: ${REDIS_POOL_MAX_IDLE:8}
+      min-idle: ${REDIS_POOL_MIN_IDLE:0}
+      max-wait: ${REDIS_POOL_MAX_WAIT:-1ms}
+
 h2:
   console:
     enabled: ${H2_CONSOLE_ENABLED:true}
