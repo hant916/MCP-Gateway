@@ -126,4 +126,37 @@ spring.data.redis:
 h2:
   console:
     enabled: ${H2_CONSOLE_ENABLED:true}
-    path: /h2-console 
+    path: /h2-console
+
+# Actuator and Monitoring Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: ${HEALTH_SHOW_DETAILS:when-authorized}
+      probes:
+        enabled: true
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      slo:
+        http.server.requests: 10ms,50ms,100ms,200ms,500ms,1s,2s,5s
+  health:
+    redis:
+      enabled: true
+    db:
+      enabled: true 
