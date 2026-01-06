@@ -8,6 +8,9 @@ import com.mcpgateway.repository.ApiSpecificationRepository;
 import com.mcpgateway.repository.McpToolRepository;
 import com.mcpgateway.repository.ToolSubscriptionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +52,7 @@ public class McpToolService {
         return mapToDTO(savedTool);
     }
 
+    @Cacheable(value = "tools", key = "#id")
     @Transactional(readOnly = true)
     public McpToolDTO getTool(UUID id) {
         return mcpToolRepository.findById(id)
@@ -56,6 +60,7 @@ public class McpToolService {
                 .orElseThrow(() -> new IllegalArgumentException("MCP Tool not found"));
     }
 
+    @CacheEvict(value = "tools", key = "#id")
     @Transactional
     public void deleteTool(UUID id) {
         if (!mcpToolRepository.existsById(id)) {
@@ -64,14 +69,15 @@ public class McpToolService {
         mcpToolRepository.deleteById(id);
     }
 
+    @CacheEvict(value = "tools", key = "#id")
     @Transactional
     public McpTool updatePricing(UUID id, BigDecimal price, McpTool.PricingModel pricingModel) {
         McpTool tool = mcpToolRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("MCP Tool not found"));
-        
+
         tool.setPrice(price);
         tool.setPricingModel(pricingModel);
-        
+
         return mcpToolRepository.save(tool);
     }
 

@@ -159,4 +159,86 @@ management:
     redis:
       enabled: true
     db:
-      enabled: true 
+      enabled: true
+    diskspace:
+      enabled: true
+      threshold: 10MB
+    custom:
+      upstream-mcp-servers:
+        enabled: true
+
+# Resilience4j Circuit Breaker Configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+        recordExceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+          - org.springframework.web.client.ResourceAccessException
+    instances:
+      mcpServer:
+        baseConfig: default
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 20
+      stripePayment:
+        baseConfig: default
+        failureRateThreshold: 30
+        waitDurationInOpenState: 30s
+      webhook:
+        baseConfig: default
+        failureRateThreshold: 70
+        waitDurationInOpenState: 5s
+
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 1s
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - java.io.IOException
+          - org.springframework.web.client.ResourceAccessException
+    instances:
+      mcpServer:
+        baseConfig: default
+        maxAttempts: 3
+      webhook:
+        baseConfig: default
+        maxAttempts: 5
+        waitDuration: 2s
+
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 10s
+        cancelRunningFuture: true
+    instances:
+      mcpServer:
+        baseConfig: default
+        timeoutDuration: 30s
+      webhook:
+        baseConfig: default
+        timeoutDuration: 5s
+
+# Caffeine Cache Configuration
+spring.cache:
+  type: caffeine
+  caffeine:
+    spec: maximumSize=1000,expireAfterWrite=5m,recordStats
+  cache-names:
+    - tools
+    - users
+    - servers
+    - subscriptions
+    - apiKeys 

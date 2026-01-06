@@ -1,0 +1,294 @@
+groups:
+  # ====================
+  # Application Health
+  # ====================
+  - name: application_health
+    interval: 30s
+    rules:
+      - alert: ApplicationDown
+        expr: up{job="mcp-gateway"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: application
+        annotations:
+          summary: "MCP Gateway instance is down"
+          description: "MCP Gateway instance {{ $labels.instance }} has been down for more than 1 minute."
+
+      - alert: HighErrorRate
+        expr: rate(http_server_requests_seconds_count{status=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: http
+        annotations:
+          summary: "High HTTP 5xx error rate detected"
+          description: "Error rate is {{ humanize $value }} errors/second on {{ $labels.instance }}"
+
+      - alert: HighLatency
+        expr: histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket[5m])) by (le, uri)) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: performance
+        annotations:
+          summary: "High latency detected"
+          description: "P99 latency is {{ humanize $value }}s for {{ $labels.uri }}"
+
+  # ====================
+  # Circuit Breaker
+  # ====================
+  - name: circuit_breaker
+    interval: 30s
+    rules:
+      - alert: CircuitBreakerOpen
+        expr: resilience4j_circuitbreaker_state{state="open"} == 1
+        for: 2m
+        labels:
+          severity: warning
+          component: circuit-breaker
+        annotations:
+          summary: "Circuit breaker {{ $labels.name }} is OPEN"
+          description: "Circuit breaker {{ $labels.name }} has been open for more than 2 minutes, indicating repeated failures to {{ $labels.name }}."
+
+      - alert: HighCircuitBreakerFailureRate
+        expr: rate(resilience4j_circuitbreaker_failure_rate[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: critical
+          component: circuit-breaker
+        annotations:
+          summary: "High failure rate on circuit breaker {{ $labels.name }}"
+          description: "Failure rate is {{ humanizePercentage $value }} for {{ $labels.name }}"
+
+  # ====================
+  # Payment System
+  # ====================
+  - name: payment_system
+    interval: 30s
+    rules:
+      - alert: HighPaymentFailureRate
+        expr: rate(payment_failure_total[5m]) / rate(payment_total[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: critical
+          component: payments
+        annotations:
+          summary: "High payment failure rate"
+          description: "Payment failure rate is {{ humanizePercentage $value }}, exceeding 10% threshold."
+
+      - alert: PaymentProcessingStalled
+        expr: rate(payment_total[10m]) == 0 and up{job="mcp-gateway"} == 1
+        for: 15m
+        labels:
+          severity: warning
+          component: payments
+        annotations:
+          summary: "No payments processed"
+          description: "No payments have been processed in the last 15 minutes while the service is up."
+
+      - alert: StripeWebhookFailures
+        expr: rate(webhook_delivery_total{webhook_type="stripe", status="failure"}[5m]) > 0.3
+        for: 10m
+        labels:
+          severity: critical
+          component: webhooks
+        annotations:
+          summary: "High Stripe webhook failure rate"
+          description: "Stripe webhook delivery failing at {{ humanize $value }} failures/second"
+
+  # ====================
+  # Database
+  # ====================
+  - name: database
+    interval: 30s
+    rules:
+      - alert: DatabaseConnectionPoolExhausted
+        expr: hikaricp_connections_active / hikaricp_connections_max > 0.9
+        for: 5m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database connection pool near exhaustion"
+          description: "Connection pool is {{ humanizePercentage $value }} full on {{ $labels.pool }}."
+
+      - alert: SlowDatabaseQueries
+        expr: histogram_quantile(0.95, sum(rate(spring_data_repository_invocations_seconds_bucket[5m])) by (le, repository)) > 1
+        for: 10m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "P95 query time is {{ humanize $value }}s for {{ $labels.repository }}"
+
+      - alert: DatabaseDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database is down"
+          description: "PostgreSQL database has been unreachable for more than 1 minute."
+
+  # ====================
+  # Redis
+  # ====================
+  - name: redis
+    interval: 30s
+    rules:
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Redis instance {{ $labels.instance }} is unreachable."
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "Redis memory usage high"
+          description: "Redis memory usage is {{ humanizePercentage $value }}"
+
+      - alert: RedisConnectionsHigh
+        expr: redis_connected_clients > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "High number of Redis connections"
+          description: "{{ $value }} clients connected to Redis"
+
+  # ====================
+  # Resource Usage
+  # ====================
+  - name: resource_usage
+    interval: 30s
+    rules:
+      - alert: HighCPUUsage
+        expr: process_cpu_usage > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          component: resources
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ humanizePercentage $value }} on {{ $labels.instance }}"
+
+      - alert: HighMemoryUsage
+        expr: jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} > 0.9
+        for: 5m
+        labels:
+          severity: critical
+          component: resources
+        annotations:
+          summary: "High JVM heap memory usage"
+          description: "JVM heap usage is {{ humanizePercentage $value }} on {{ $labels.instance }}"
+
+      - alert: HighGCTime
+        expr: rate(jvm_gc_pause_seconds_sum[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          component: resources
+        annotations:
+          summary: "High garbage collection time"
+          description: "GC is taking {{ humanizePercentage $value }} of CPU time"
+
+  # ====================
+  # Upstream MCP Servers
+  # ====================
+  - name: upstream_servers
+    interval: 30s
+    rules:
+      - alert: UpstreamServerDown
+        expr: health_upstream_mcp_servers_unhealthy_servers > 0
+        for: 5m
+        labels:
+          severity: warning
+          component: upstream
+        annotations:
+          summary: "Upstream MCP servers unavailable"
+          description: "{{ $value }} upstream MCP servers are unhealthy"
+
+      - alert: AllUpstreamServersDown
+        expr: health_upstream_mcp_servers_healthy_servers == 0 and health_upstream_mcp_servers_total_servers > 0
+        for: 2m
+        labels:
+          severity: critical
+          component: upstream
+        annotations:
+          summary: "All upstream MCP servers are down"
+          description: "No healthy upstream MCP servers available"
+
+  # ====================
+  # Rate Limiting & Quota
+  # ====================
+  - name: rate_limiting
+    interval: 30s
+    rules:
+      - alert: HighRateLimitHitRate
+        expr: rate(rate_limit_exceeded_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: rate-limiting
+        annotations:
+          summary: "High rate limit hit rate"
+          description: "Rate limits being hit {{ humanize $value }} times/second"
+
+      - alert: QuotaExhaustedUsers
+        expr: quota_exceeded_users > 100
+        for: 10m
+        labels:
+          severity: warning
+          component: quota
+        annotations:
+          summary: "Many users hitting quota limits"
+          description: "{{ $value }} users have exceeded their quotas"
+
+  # ====================
+  # Security
+  # ====================
+  - name: security
+    interval: 30s
+    rules:
+      - alert: SuspiciousAuthenticationActivity
+        expr: rate(authentication_failure_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "High authentication failure rate"
+          description: "{{ humanize $value }} authentication failures/second detected"
+
+      - alert: UnauthorizedAccessAttempts
+        expr: rate(http_server_requests_seconds_count{status="401"}[5m]) > 5
+        for: 10m
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "High rate of unauthorized access attempts"
+          description: "{{ humanize $value }} 401 responses/second"
+
+      - alert: PotentialDDoSAttack
+        expr: rate(http_server_requests_seconds_count[1m]) > 1000
+        for: 2m
+        labels:
+          severity: critical
+          component: security
+        annotations:
+          summary: "Potential DDoS attack detected"
+          description: "Extremely high request rate: {{ humanize $value }} requests/second"
