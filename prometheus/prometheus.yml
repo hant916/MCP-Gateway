@@ -1,0 +1,38 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'mcp-gateway'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - '/etc/prometheus/alerts.yml'
+
+# Scrape configurations
+scrape_configs:
+  # MCP Gateway application
+  - job_name: 'mcp-gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+        labels:
+          application: 'mcp-gateway'
+          service: 'api'
+
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # AlertManager
+  - job_name: 'alertmanager'
+    static_configs:
+      - targets: ['alertmanager:9093']
