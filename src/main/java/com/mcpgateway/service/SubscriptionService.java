@@ -1,10 +1,12 @@
 package com.mcpgateway.service;
 
 import com.mcpgateway.domain.*;
+import com.mcpgateway.event.ToolSubscribedEvent;
 import com.mcpgateway.repository.ToolSubscriptionRepository;
 import com.mcpgateway.repository.McpToolRepository;
 import com.mcpgateway.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,7 @@ public class SubscriptionService {
     private final ToolSubscriptionRepository subscriptionRepository;
     private final McpToolRepository toolRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
     
     public ToolSubscription subscribe(UUID clientId, UUID toolId, McpTool.PricingModel pricingModel) {
         User client = userRepository.findById(clientId)
@@ -42,8 +45,13 @@ public class SubscriptionService {
             subscription.setEndDate(LocalDateTime.now().plusMonths(1));
             subscription.setRemainingQuota(tool.getUsageQuota());
         }
-        
-        return subscriptionRepository.save(subscription);
+
+        ToolSubscription savedSubscription = subscriptionRepository.save(subscription);
+
+        // Publish domain event for async processing (email, webhooks, analytics)
+        eventPublisher.publishEvent(new ToolSubscribedEvent(savedSubscription));
+
+        return savedSubscription;
     }
     
     public void cancelSubscription(UUID subscriptionId) {
