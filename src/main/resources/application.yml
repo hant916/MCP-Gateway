@@ -18,6 +18,26 @@ spring:
     password: ${DATABASE_PASSWORD:password}
     driver-class-name: ${DATABASE_DRIVER:org.h2.Driver}
 
+    # Read-Write Splitting Configuration (optional, disabled by default)
+    # Enable with: spring.datasource.read-write-splitting.enabled=true
+    # Benefits: Reduces load on master, scales reads horizontally
+    read-write-splitting:
+      enabled: ${READ_WRITE_SPLITTING_ENABLED:false}
+
+    # Replica configuration (only used if read-write-splitting.enabled=true)
+    replica:
+      url: ${DATABASE_REPLICA_URL:#{null}}
+      username: ${DATABASE_REPLICA_USERNAME:#{null}}
+      password: ${DATABASE_REPLICA_PASSWORD:#{null}}
+
+    # HikariCP connection pool settings
+    hikari:
+      maximum-pool-size: ${HIKARI_MAX_POOL_SIZE:10}
+      minimum-idle: ${HIKARI_MIN_IDLE:5}
+      connection-timeout: ${HIKARI_CONNECTION_TIMEOUT:30000}
+      idle-timeout: ${HIKARI_IDLE_TIMEOUT:600000}
+      max-lifetime: ${HIKARI_MAX_LIFETIME:1800000}
+
   jpa:
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:update}
@@ -159,4 +179,101 @@ management:
     redis:
       enabled: true
     db:
-      enabled: true 
+      enabled: true
+    diskspace:
+      enabled: true
+      threshold: 10MB
+    custom:
+      upstream-mcp-servers:
+        enabled: true
+
+# Resilience4j Circuit Breaker Configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+        recordExceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+          - org.springframework.web.client.ResourceAccessException
+    instances:
+      mcpServer:
+        baseConfig: default
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 20
+      stripePayment:
+        baseConfig: default
+        failureRateThreshold: 30
+        waitDurationInOpenState: 30s
+      webhook:
+        baseConfig: default
+        failureRateThreshold: 70
+        waitDurationInOpenState: 5s
+
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 1s
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - java.io.IOException
+          - org.springframework.web.client.ResourceAccessException
+    instances:
+      mcpServer:
+        baseConfig: default
+        maxAttempts: 3
+      webhook:
+        baseConfig: default
+        maxAttempts: 5
+        waitDuration: 2s
+
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 10s
+        cancelRunningFuture: true
+    instances:
+      mcpServer:
+        baseConfig: default
+        timeoutDuration: 30s
+      webhook:
+        baseConfig: default
+        timeoutDuration: 5s
+
+# Caffeine Cache Configuration
+spring.cache:
+  type: caffeine
+  caffeine:
+    spec: maximumSize=1000,expireAfterWrite=5m,recordStats
+  cache-names:
+    - tools
+    - users
+    - servers
+    - subscriptions
+    - apiKeys
+
+# Distributed Tracing Configuration
+management.tracing:
+  sampling:
+    probability: ${TRACING_SAMPLING_PROBABILITY:1.0}  # 1.0 = 100% sampling (adjust in production)
+  enabled: ${TRACING_ENABLED:true}
+
+management.zipkin.tracing:
+  endpoint: ${ZIPKIN_ENDPOINT:http://localhost:9411/api/v2/spans}
+
+# Spring application name for tracing
+spring.application.name: ${SPRING_APPLICATION_NAME:mcp-gateway}
+
+# Propagation settings
+management.tracing.propagation.type: B3  # Zipkin B3 propagation format 

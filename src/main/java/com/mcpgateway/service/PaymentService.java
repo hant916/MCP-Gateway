@@ -6,6 +6,7 @@ import com.mcpgateway.domain.ToolSubscription;
 import com.mcpgateway.dto.payment.CreatePaymentIntentRequest;
 import com.mcpgateway.dto.payment.PaymentHistoryDTO;
 import com.mcpgateway.dto.payment.PaymentIntentResponse;
+import com.mcpgateway.event.PaymentCreatedEvent;
 import com.mcpgateway.repository.McpToolRepository;
 import com.mcpgateway.repository.PaymentRepository;
 import com.mcpgateway.repository.ToolSubscriptionRepository;
@@ -14,6 +15,7 @@ import com.stripe.model.PaymentIntent;
 import com.stripe.param.PaymentIntentCreateParams;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +39,7 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final McpToolRepository toolRepository;
     private final ToolSubscriptionRepository subscriptionRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Create a payment intent
@@ -92,6 +95,9 @@ public class PaymentService {
         }
 
         paymentRepository.save(payment);
+
+        // Publish domain event for async processing
+        eventPublisher.publishEvent(new PaymentCreatedEvent(payment));
 
         log.info("Created payment intent {} for user {} amount {} {}",
                 paymentIntent.getId(), userId, request.getAmount(), request.getCurrency());
