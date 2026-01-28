@@ -159,4 +159,57 @@ management:
     redis:
       enabled: true
     db:
-      enabled: true 
+      enabled: true
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+
+# Circuit Breaker Configuration
+mcp.circuit-breaker:
+  enabled: ${CIRCUIT_BREAKER_ENABLED:true}
+  # Percentage of failures to open the circuit
+  failure-rate-threshold: ${CIRCUIT_BREAKER_FAILURE_RATE:50}
+  # Percentage of slow calls to open the circuit
+  slow-call-rate-threshold: ${CIRCUIT_BREAKER_SLOW_CALL_RATE:100}
+  # Duration threshold for slow calls (ms)
+  slow-call-duration-threshold: ${CIRCUIT_BREAKER_SLOW_CALL_DURATION:2000}
+  # Number of calls permitted in half-open state
+  permitted-calls-in-half-open: ${CIRCUIT_BREAKER_HALF_OPEN_CALLS:3}
+  # Sliding window size for failure rate calculation
+  sliding-window-size: ${CIRCUIT_BREAKER_WINDOW_SIZE:10}
+  # Minimum calls before failure rate is calculated
+  minimum-number-of-calls: ${CIRCUIT_BREAKER_MIN_CALLS:5}
+  # Wait duration before transitioning from open to half-open (ms)
+  wait-duration-in-open-state: ${CIRCUIT_BREAKER_WAIT_DURATION:10000}
+
+# Retry Configuration
+mcp.retry:
+  max-attempts: ${RETRY_MAX_ATTEMPTS:3}
+  wait-duration: ${RETRY_WAIT_DURATION:500}
+
+# Timeout Configuration
+mcp.timeout:
+  duration: ${TIMEOUT_DURATION:5000}
+
+# Load Balancer Configuration
+mcp.load-balancer:
+  enabled: ${LOAD_BALANCER_ENABLED:true}
+  # Default strategy: round-robin, weighted-round-robin, least-connections, ip-hash, least-response-time, random
+  default-strategy: ${LOAD_BALANCER_STRATEGY:round-robin}
+  health-check:
+    enabled: ${LOAD_BALANCER_HEALTH_CHECK_ENABLED:true}
+    interval-seconds: ${LOAD_BALANCER_HEALTH_CHECK_INTERVAL:30}
+    unhealthy-threshold: ${LOAD_BALANCER_UNHEALTHY_THRESHOLD:3}
+
+# Distributed Tracing Configuration
+mcp.tracing:
+  enabled: ${TRACING_ENABLED:true}
+  sampling-probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+  exporter:
+    type: ${TRACING_EXPORTER_TYPE:zipkin}
+    endpoint: ${TRACING_EXPORTER_ENDPOINT:http://localhost:9411/api/v2/spans}
+
+# Zipkin Configuration
+spring.zipkin:
+  enabled: ${ZIPKIN_ENABLED:true}
+  base-url: ${ZIPKIN_BASE_URL:http://localhost:9411} 
