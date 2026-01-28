@@ -212,4 +212,26 @@ mcp.tracing:
 # Zipkin Configuration
 spring.zipkin:
   enabled: ${ZIPKIN_ENABLED:true}
-  base-url: ${ZIPKIN_BASE_URL:http://localhost:9411} 
+  base-url: ${ZIPKIN_BASE_URL:http://localhost:9411}
+
+# StreamSafe Configuration
+mcp.stream:
+  enabled: ${STREAM_ENABLED:true}
+  # Maximum expected latency before falling back to async (seconds)
+  max-latency-for-streaming-seconds: ${STREAM_MAX_LATENCY:20}
+  # SSE timeout (milliseconds)
+  sse-timeout-ms: ${STREAM_SSE_TIMEOUT:300000}
+  # First byte timeout - CRITICAL: must be < 1s for true streaming (milliseconds)
+  first-byte-timeout-ms: ${STREAM_FIRST_BYTE_TIMEOUT:1000}
+  # Enable SSE through API Gateway (not recommended)
+  enable-sse-through-api-gateway: ${STREAM_ENABLE_SSE_API_GW:false}
+  # Enable SSE through CDN (depends on CDN configuration)
+  enable-sse-through-cdn: ${STREAM_ENABLE_SSE_CDN:false}
+  # Buffer configuration
+  buffer:
+    max-tokens: ${STREAM_BUFFER_MAX_TOKENS:10000}
+    max-bytes: ${STREAM_BUFFER_MAX_BYTES:10485760}
+  # Async job configuration
+  async:
+    # TTL for completed jobs (milliseconds)
+    result-ttl-ms: ${STREAM_ASYNC_RESULT_TTL:3600000} 
