@@ -39,17 +39,4 @@ public interface StreamTransport {
      * Get the transport type name.
      */
     String getType();
-
-    /**
-     * Exception for transport errors.
-     */
-    class TransportException extends RuntimeException {
-        public TransportException(String message) {
-            super(message);
-        }
-
-        public TransportException(String message, Throwable cause) {
-            super(message, cause);
-        }
-    }
 }
