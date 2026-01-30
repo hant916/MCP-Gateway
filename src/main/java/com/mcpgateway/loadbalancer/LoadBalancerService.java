@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class LoadBalancerService {
 
-    private final Map<String, LoadBalancerStrategy> strategies;
+    private final Map<String, LoadBalancerStrategy> strategies = new HashMap<>();
     private final MeterRegistry meterRegistry;
 
     // Server pools: poolName -> List of server instances
@@ -49,18 +49,22 @@ public class LoadBalancerService {
             IPHashStrategy ipHashStrategy,
             LeastResponseTimeStrategy leastResponseTimeStrategy,
             RandomStrategy randomStrategy,
+            ConsistentHashStrategy consistentHashStrategy,
+            ZoneAwareStrategy zoneAwareStrategy,
             MeterRegistry meterRegistry) {
 
         this.meterRegistry = meterRegistry;
 
-        this.strategies = Map.of(
-                "round-robin", roundRobinStrategy,
-                "weighted-round-robin", weightedRoundRobinStrategy,
-                "least-connections", leastConnectionsStrategy,
-                "ip-hash", ipHashStrategy,
-                "least-response-time", leastResponseTimeStrategy,
-                "random", randomStrategy
-        );
+        // Ralph Loop Enhanced: Added consistent-hash and zone-aware strategies
+        this.strategies = new HashMap<>();
+        this.strategies.put("round-robin", roundRobinStrategy);
+        this.strategies.put("weighted-round-robin", weightedRoundRobinStrategy);
+        this.strategies.put("least-connections", leastConnectionsStrategy);
+        this.strategies.put("ip-hash", ipHashStrategy);
+        this.strategies.put("least-response-time", leastResponseTimeStrategy);
+        this.strategies.put("random", randomStrategy);
+        this.strategies.put("consistent-hash", consistentHashStrategy);
+        this.strategies.put("zone-aware", zoneAwareStrategy);
     }
 
     /**

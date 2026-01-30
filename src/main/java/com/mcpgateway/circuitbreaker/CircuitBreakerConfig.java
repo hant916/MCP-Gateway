@@ -1,7 +1,9 @@
 package com.mcpgateway.circuitbreaker;
 
+import io.github.resilience4j.bulkhead.BulkheadRegistry;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryRegistry;
 import io.github.resilience4j.timelimiter.TimeLimiter;
@@ -13,6 +15,16 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
 
+/**
+ * Resilience4j Configuration - Ralph Loop Enhanced.
+ *
+ * Provides all resilience registries:
+ * - CircuitBreaker: Prevent cascade failures
+ * - Bulkhead: Thread/semaphore isolation
+ * - RateLimiter: Request rate control
+ * - Retry: Automatic retry with backoff
+ * - TimeLimiter: Timeout control
+ */
 @Configuration
 public class CircuitBreakerConfig {
 
@@ -105,5 +117,28 @@ public class CircuitBreakerConfig {
     @Bean
     public TimeLimiter mcpServerTimeLimiter(TimeLimiterRegistry registry) {
         return registry.timeLimiter("mcpServer");
+    }
+
+    @Bean
+    public BulkheadRegistry bulkheadRegistry() {
+        io.github.resilience4j.bulkhead.BulkheadConfig defaultConfig =
+            io.github.resilience4j.bulkhead.BulkheadConfig.custom()
+                .maxConcurrentCalls(25)
+                .maxWaitDuration(Duration.ofMillis(500))
+                .build();
+
+        return BulkheadRegistry.of(defaultConfig);
+    }
+
+    @Bean
+    public RateLimiterRegistry rateLimiterRegistry() {
+        io.github.resilience4j.ratelimiter.RateLimiterConfig defaultConfig =
+            io.github.resilience4j.ratelimiter.RateLimiterConfig.custom()
+                .limitForPeriod(100)
+                .limitRefreshPeriod(Duration.ofSeconds(1))
+                .timeoutDuration(Duration.ofMillis(500))
+                .build();
+
+        return RateLimiterRegistry.of(defaultConfig);
     }
 }
