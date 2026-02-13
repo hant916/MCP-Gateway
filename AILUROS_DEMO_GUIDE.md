@@ -6,20 +6,22 @@ This guide shows you how to **demonstrate control** in under 5 minutes.
 
 ---
 
-## ⚡ Quick Start (3 Commands)
+## ⚡ Quick Start (2 Commands)
 
 ```bash
-# 1. Generate 1000+ demo calls with dramatic scenarios
-mvn spring-boot:run -Dspring-boot.run.arguments="--demo.generate=true"
-
-# 2. Start the application
+# 1. Start the application
 mvn spring-boot:run
 
+# 2. Generate demo data (in another terminal or use curl)
+curl -X POST http://localhost:8080/api/ailuros/demo/generate
+
 # 3. Open dashboard
-open http://localhost:8080/ailuros-dashboard.html
+start http://localhost:8080/ailuros-dashboard.html
 ```
 
 **That's it.** You now have a working observability system with real data.
+
+**Windows users**: Use `start` instead of `open` for step 3.
 
 ---
 
@@ -30,8 +32,11 @@ open http://localhost:8080/ailuros-dashboard.html
 **Answer**: ✅ YES
 
 ```bash
-# Generate demo data (takes ~10 seconds)
-mvn spring-boot:run -Dspring-boot.run.arguments="--demo.generate=true"
+# Start application
+mvn spring-boot:run
+
+# In another terminal, generate demo data (takes ~10 seconds)
+curl -X POST http://localhost:8080/api/ailuros/demo/generate
 
 # Output:
 # =====================================
@@ -163,6 +168,26 @@ http://localhost:8080/ailuros-dashboard.html
 - Reliability drops to 70%
 
 **Demo this**: Show error rate chart. Say "This is what upstream issues look like."
+
+---
+
+## 💻 Windows-Specific Commands
+
+If you're on Windows, here are the exact commands:
+
+```powershell
+# 1. Start application
+mvn spring-boot:run
+
+# 2. In PowerShell (new window), generate demo data
+Invoke-WebRequest -Uri http://localhost:8080/api/ailuros/demo/generate -Method POST
+
+# OR use curl if installed
+curl -X POST http://localhost:8080/api/ailuros/demo/generate
+
+# 3. Open dashboard
+start http://localhost:8080/ailuros-dashboard.html
+```
 
 ---
 
@@ -315,7 +340,12 @@ mvn spring-boot:run
 
 **Fix**: Generate demo data first
 ```bash
-mvn spring-boot:run -Dspring-boot.run.arguments="--demo.generate=true"
+curl -X POST http://localhost:8080/api/ailuros/demo/generate
+```
+
+**Windows PowerShell**:
+```powershell
+Invoke-WebRequest -Uri http://localhost:8080/api/ailuros/demo/generate -Method POST
 ```
 
 ### Database error

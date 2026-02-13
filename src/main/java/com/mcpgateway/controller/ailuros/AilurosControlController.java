@@ -1,5 +1,6 @@
 package com.mcpgateway.controller.ailuros;
 
+import com.mcpgateway.demo.AilurosDataGenerator;
 import com.mcpgateway.dto.ailuros.*;
 import com.mcpgateway.service.ailuros.AilurosControlService;
 import com.mcpgateway.service.ailuros.ComparisonService;
@@ -30,6 +31,7 @@ import java.util.UUID;
  * - Cost analysis
  * - Call comparison
  * - Overview KPIs
+ * - Demo data generation (development only)
  *
  * Base path: /api/ailuros
  */
@@ -43,6 +45,26 @@ public class AilurosControlController {
 
     private final AilurosControlService controlService;
     private final ComparisonService comparisonService;
+    private final AilurosDataGenerator dataGenerator;
+
+    /**
+     * Generate demo data
+     *
+     * POST /api/ailuros/demo/generate
+     */
+    @PostMapping("/demo/generate")
+    @Operation(summary = "Generate demo data",
+               description = "Generates 1,500+ realistic LLM calls with dramatic scenarios (DEMO ONLY)")
+    public ResponseEntity<String> generateDemoData() {
+        try {
+            log.info("🎬 Demo data generation requested via API");
+            dataGenerator.run("--demo.generate=true");
+            return ResponseEntity.ok("✅ Demo data generated successfully! Open http://localhost:8080/ailuros-dashboard.html");
+        } catch (Exception e) {
+            log.error("Failed to generate demo data", e);
+            return ResponseEntity.status(500).body("❌ Failed to generate demo data: " + e.getMessage());
+        }
+    }
 
     /**
      * Get calls with filtering and pagination
