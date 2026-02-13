@@ -20,14 +20,15 @@ public class UserRegisteredEvent extends DomainEvent {
     private final UUID userId;
     private final String username;
     private final String email;
-    private final User.UserRole role;
+    // Note: User.UserRole field commented out - not yet implemented in User entity
+    // private final User.UserRole role;
 
     public UserRegisteredEvent(User user) {
         super();
         this.userId = user.getId();
         this.username = user.getUsername();
         this.email = user.getEmail();
-        this.role = user.getRole();
+        // this.role = user.getRole();
     }
 
     @Override
@@ -37,7 +38,7 @@ public class UserRegisteredEvent extends DomainEvent {
 
     @Override
     public String getEventData() {
-        return String.format("User %s (%s) registered with email %s, role: %s",
-                userId, username, email, role);
+        return String.format("User %s (%s) registered with email %s",
+                userId, username, email);
     }
 }

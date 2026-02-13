@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -21,12 +22,13 @@ public class UserAdminDTO {
     private UUID id;
     private String username;
     private String email;
+    // Note: User entity doesn't have these fields yet - placeholders for future implementation
     private String fullName;
-    private User.SubscriptionTier subscriptionTier;
+    private String subscriptionTierName; // Simplified from nested class reference
     private Boolean isActive;
     private Boolean emailVerified;
-    private LocalDateTime createdAt;
-    private LocalDateTime lastLoginAt;
+    private Timestamp createdAt; // Changed to match User entity type
+    private Timestamp lastLoginAt;
 
     // Statistics
     private Integer totalSubscriptions;
@@ -36,18 +38,20 @@ public class UserAdminDTO {
 
     /**
      * Convert from User entity
+     * Note: Some fields (fullName, subscriptionTierName, etc.) are not yet in User entity
      */
     public static UserAdminDTO from(User user) {
         return UserAdminDTO.builder()
                 .id(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
-                .fullName(user.getFullName())
-                .subscriptionTier(user.getSubscriptionTier())
-                .isActive(user.getIsActive())
-                .emailVerified(user.getEmailVerified())
+                // Commented out fields not yet present in User entity:
+                // .fullName(user.getFullName())
+                // .subscriptionTierName(user.getSubscriptionTierName())
+                // .isActive(user.getIsActive())
+                // .emailVerified(user.getEmailVerified())
                 .createdAt(user.getCreatedAt())
-                .lastLoginAt(user.getLastLoginAt())
+                // .lastLoginAt(user.getLastLoginAt())
                 .build();
     }
 

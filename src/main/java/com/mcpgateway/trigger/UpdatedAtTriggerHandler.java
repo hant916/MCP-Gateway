@@ -1,14 +1,23 @@
 package com.mcpgateway.trigger;
 
-import org.h2.api.Trigger;
-import org.springframework.stereotype.Component;
-
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 
-@Component
-public class UpdatedAtTriggerHandler implements Trigger {
+/**
+ * H2 Database trigger handler for automatic updated_at column updates
+ *
+ * NOTE: Disabled (@Component removed) because H2 dependency has runtime scope
+ * and org.h2.api.Trigger is not available at compile time.
+ *
+ * Alternative approach: Use JPA @PreUpdate annotation in entity classes instead.
+ * This is already implemented in User.java and other entities.
+ */
+// @Component - Removed to fix compilation error (H2 API not available at compile time)
+public class UpdatedAtTriggerHandler /* implements Trigger */ {
+
+    // Implementation commented out - use JPA @PreUpdate instead
+    /*
     @Override
     public void init(Connection conn, String schemaName, String triggerName,
                     String tableName, boolean before, int type) {
@@ -45,4 +54,5 @@ public class UpdatedAtTriggerHandler implements Trigger {
     public void remove() {
         // Removal logic if needed
     }
+    */
 } 

@@ -1,6 +1,6 @@
 package com.mcpgateway.dto.admin;
 
-import com.mcpgateway.domain.User;
+import com.mcpgateway.ratelimit.SubscriptionQuotaService;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -23,7 +23,7 @@ public class UpdateUserRequest {
     @Size(max = 100, message = "Full name must not exceed 100 characters")
     private String fullName;
 
-    private User.SubscriptionTier subscriptionTier;
+    private String subscriptionTierName; // Changed from nested class reference to simple String
 
     private Boolean isActive;
 

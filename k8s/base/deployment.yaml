@@ -135,6 +135,17 @@ spec:
               memory: "1Gi"
               cpu: "1000m"
 
+          # Lifecycle hooks for graceful shutdown
+          lifecycle:
+            preStop:
+              exec:
+                # Sleep 15 seconds to allow:
+                # 1. Service Endpoints to be updated (remove this Pod)
+                # 2. In-flight requests to complete
+                # 3. Load balancers to stop routing traffic here
+                # After sleep, SIGTERM is sent and Spring's graceful shutdown takes over (30s)
+                command: ["/bin/sh", "-c", "sleep 15"]
+
           # Liveness probe - checks if app is running
           livenessProbe:
             httpGet:
