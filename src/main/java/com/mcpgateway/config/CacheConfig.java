@@ -39,17 +39,28 @@ public class CacheConfig {
 
     @Bean
     public CacheManager cacheManager() {
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager(
-                "tools", "users", "servers", "subscriptions", "apiKeys"
-        );
+        CaffeineCacheManager cacheManager = new CaffeineCacheManager();
 
-        cacheManager.setCaffeine(caffeineCacheBuilder());
+        // Configure individual caches with specific settings
+        cacheManager.registerCustomCache("tools", caffeineCacheForTools());
+        cacheManager.registerCustomCache("users", caffeineCacheForUsers());
+        cacheManager.registerCustomCache("servers", caffeineCacheBuilder().build());
+        cacheManager.registerCustomCache("subscriptions", caffeineCacheBuilder().build());
+        cacheManager.registerCustomCache("apiKeys", caffeineCacheBuilder().build());
 
         // Register cache metrics with Prometheus
         registerCacheMetrics(cacheManager);
 
-        log.info("Caffeine cache manager configured with caches: tools, users, servers, subscriptions, apiKeys");
+        log.info("Caffeine cache manager configured with caches: tools (15min), users (2min), servers, subscriptions, apiKeys");
         return cacheManager;
+    }
+
+    private com.github.benmanes.caffeine.cache.Cache<Object, Object> caffeineCacheForTools() {
+        return toolsCaffeineConfig().build();
+    }
+
+    private com.github.benmanes.caffeine.cache.Cache<Object, Object> caffeineCacheForUsers() {
+        return usersCaffeineConfig().build();
     }
 
     private Caffeine<Object, Object> caffeineCacheBuilder() {

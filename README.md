@@ -80,7 +80,7 @@ Client ←→ MCP Gateway ←→ Upstream MCP Server
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Java 21 or higher
+- Java 17 or higher
 - Maven 3.8.x or higher
 - Git
 
@@ -483,4 +483,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Built with**: Spring Boot 3.2.3, Java 21, H2 Database, JWT Authentication, Reactive WebClient 
+**Built with**: Spring Boot 3.2.3, Java 17, H2 Database, JWT Authentication, Reactive WebClient 

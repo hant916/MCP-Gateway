@@ -31,6 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.HashMap;
+import jakarta.annotation.PreDestroy;
 
 @Slf4j
 @Service
@@ -672,6 +673,71 @@ public class McpServerConnectionService {
                 log.warn("Unknown transport type for session: {}", sessionId);
                 closeUpstreamConnection(sessionId);
         }
+    }
+
+    // ==================== Lifecycle Management ====================
+
+    /**
+     * Cleanup all connections on application shutdown
+     * Ensures graceful shutdown and prevents resource leaks
+     */
+    @PreDestroy
+    public void cleanup() {
+        log.info("Shutting down McpServerConnectionService - cleaning up {} upstream connections, {} STDIO processes",
+            upstreamConnections.size(), stdioProcesses.size());
+
+        // Close all SSE and Streamable HTTP connections
+        upstreamConnections.forEach((sessionId, conn) -> {
+            try {
+                if (conn != null && !conn.isDisposed()) {
+                    conn.dispose();
+                    log.debug("Disposed upstream connection for session: {}", sessionId);
+                }
+            } catch (Exception e) {
+                log.warn("Error disposing connection for session {}: {}", sessionId, e.getMessage());
+            }
+        });
+        upstreamConnections.clear();
+
+        // Close all STDIO processes
+        stdioProcesses.forEach((sessionId, process) -> {
+            try {
+                if (process != null && process.isAlive()) {
+                    process.destroy();
+                    boolean terminated = process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS);
+                    if (!terminated) {
+                        log.warn("STDIO process for session {} did not terminate gracefully, forcing shutdown", sessionId);
+                        process.destroyForcibly();
+                    } else {
+                        log.debug("Terminated STDIO process for session: {}", sessionId);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Error terminating STDIO process for session {}: {}", sessionId, e.getMessage());
+                if (process != null && process.isAlive()) {
+                    process.destroyForcibly();
+                }
+            }
+        });
+        stdioProcesses.clear();
+
+        // Clear WebSocket sinks
+        websocketSinks.forEach((sessionId, sink) -> {
+            try {
+                if (sink != null) {
+                    sink.tryEmitComplete();
+                    log.debug("Completed WebSocket sink for session: {}", sessionId);
+                }
+            } catch (Exception e) {
+                log.warn("Error completing WebSocket sink for session {}: {}", sessionId, e.getMessage());
+            }
+        });
+        websocketSinks.clear();
+
+        // Clear streamable HTTP queues
+        streamableHttpQueues.clear();
+
+        log.info("McpServerConnectionService cleanup completed");
     }
 
     // ==================== Helper Methods ====================
