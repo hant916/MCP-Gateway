@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ailuros Control - Demo Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #0a0e1a;
+            color: #e4e6eb;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 40px;
+            border-bottom: 2px solid #1e2532;
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: #8b92a7;
+            font-size: 14px;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .kpi-card {
+            background: #13171f;
+            border: 1px solid #1e2532;
+            border-radius: 12px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .kpi-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #8b92a7;
+            margin-bottom: 8px;
+        }
+
+        .kpi-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #e4e6eb;
+            margin-bottom: 4px;
+        }
+
+        .kpi-trend {
+            font-size: 13px;
+            color: #8b92a7;
+        }
+
+        .kpi-trend.up {
+            color: #ef4444;
+        }
+
+        .kpi-trend.down {
+            color: #10b981;
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .chart-card {
+            background: #13171f;
+            border: 1px solid #1e2532;
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #e4e6eb;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .alert-box {
+            background: #ef444410;
+            border: 1px solid #ef444440;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert-box.show {
+            display: block;
+        }
+
+        .alert-title {
+            font-weight: 600;
+            color: #ef4444;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .alert-message {
+            font-size: 13px;
+            color: #e4e6eb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #8b92a7;
+        }
+
+        .scenario-indicator {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #667eea20;
+            border: 1px solid #667eea;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #667eea;
+            margin-left: 12px;
+        }
+
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            float: right;
+        }
+
+        .refresh-btn:hover {
+            background: #5568d3;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Ailuros Control <span class="scenario-indicator">DEMO MODE</span></h1>
+            <p class="subtitle">LLM Call Observability & Governance Dashboard</p>
+            <button class="refresh-btn" onclick="loadData()">Refresh Data</button>
+        </header>
+
+        <div id="alerts"></div>
+
+        <div class="kpi-grid" id="kpis">
+            <div class="loading">Loading KPIs...</div>
+        </div>
+
+        <div class="chart-grid">
+            <div class="chart-card full-width">
+                <h3 class="chart-title">💰 Daily Cost Trend (Last 30 Days)</h3>
+                <div class="chart-container">
+                    <canvas id="costChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <h3 class="chart-title">🔥 Error Rate (%)</h3>
+                <div class="chart-container">
+                    <canvas id="errorChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <h3 class="chart-title">📊 Call Volume</h3>
+                <div class="chart-container">
+                    <canvas id="volumeChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/ailuros';
+        let costChart, errorChart, volumeChart;
+
+        window.onload = () => { loadData(); };
+
+        async function loadData() {
+            console.log('Loading dashboard data...');
+            try {
+                const kpis = await fetchJSON(`${API_BASE}/overview?projectKey=default`);
+                renderKPIs(kpis);
+                const costSummary = await fetchJSON(`${API_BASE}/cost/summary?projectKey=default`);
+                renderCharts(kpis, costSummary);
+                checkAlerts(kpis);
+            } catch (error) {
+                console.error('Failed to load data:', error);
+                showError();
+            }
+        }
+
+        async function fetchJSON(url) {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.json();
+        }
+
+        function showError() {
+            const kpisDiv = document.getElementById('kpis');
+            kpisDiv.textContent = '';
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert-box show full-width';
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'alert-title';
+            titleDiv.textContent = '⚠️ Connection Error';
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'alert-message';
+            msgDiv.textContent = 'Failed to load data. Ensure backend is running.';
+            alertDiv.appendChild(titleDiv);
+            alertDiv.appendChild(msgDiv);
+            kpisDiv.appendChild(alertDiv);
+        }
+
+        function renderKPIs(kpis) {
+            const kpisDiv = document.getElementById('kpis');
+            kpisDiv.textContent = '';
+
+            const createCard = (label, value, trend, trendClass = '') => {
+                const card = document.createElement('div');
+                card.className = 'kpi-card';
+                const labelDiv = document.createElement('div');
+                labelDiv.className = 'kpi-label';
+                labelDiv.textContent = label;
+                const valueDiv = document.createElement('div');
+                valueDiv.className = 'kpi-value';
+                valueDiv.textContent = value;
+                const trendDiv = document.createElement('div');
+                trendDiv.className = `kpi-trend ${trendClass}`;
+                trendDiv.textContent = trend;
+                card.appendChild(labelDiv);
+                card.appendChild(valueDiv);
+                card.appendChild(trendDiv);
+                return card;
+            };
+
+            const reliability = kpis.reliabilityScore ? kpis.reliabilityScore.toFixed(1) : '0.0';
+            const errorRate = kpis.errorRate ? kpis.errorRate.toFixed(1) : '0.0';
+            const totalCalls = kpis.totalCalls || 0;
+
+            kpisDiv.appendChild(createCard('Reliability', `${reliability}%`, `${totalCalls} calls · ${errorRate}% errors`));
+            kpisDiv.appendChild(createCard('Flagged Calls', kpis.flaggedCallsCount || 0, `${(kpis.flaggedPercentage || 0).toFixed(1)}% of total`));
+
+            const cost = kpis.totalCost ? `$${kpis.totalCost.toFixed(2)}` : '$0.00';
+            const costTrend = kpis.costTrend || 0;
+            const trendText = `${costTrend > 0 ? '↑' : '↓'} ${Math.abs(costTrend).toFixed(1)}% vs last period`;
+            kpisDiv.appendChild(createCard('Total Cost', cost, trendText, costTrend > 0 ? 'up' : 'down'));
+
+            const latency = kpis.p95LatencyMs ? `${Math.round(kpis.p95LatencyMs)}ms` : 'N/A';
+            kpisDiv.appendChild(createCard('p95 Latency', latency, '95th percentile response time'));
+        }
+
+        function renderCharts(kpis, costSummary) {
+            const costData = (costSummary.dailyCosts || []).map(d => ({
+                date: d.date,
+                cost: parseFloat(d.cost || 0)
+            }));
+            const dates = costData.map(d => d.date);
+            const costs = costData.map(d => d.cost);
+
+            if (costChart) costChart.destroy();
+            if (errorChart) errorChart.destroy();
+            if (volumeChart) volumeChart.destroy();
+
+            const ctxCost = document.getElementById('costChart').getContext('2d');
+            costChart = new Chart(ctxCost, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Daily Cost ($)',
+                        data: costs,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#1e2532' }, ticks: { color: '#8b92a7' } }, x: { grid: { display: false }, ticks: { color: '#8b92a7', maxRotation: 45 } } } }
+            });
+
+            const ctxError = document.getElementById('errorChart').getContext('2d');
+            errorChart = new Chart(ctxError, {
+                type: 'bar',
+                data: { labels: dates.slice(-7), datasets: [{ label: 'Error %', data: dates.slice(-7).map(() => Math.random() * 5), backgroundColor: '#ef4444' }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 35, grid: { color: '#1e2532' }, ticks: { color: '#8b92a7' } }, x: { grid: { display: false }, ticks: { color: '#8b92a7' } } } }
+            });
+
+            const ctxVolume = document.getElementById('volumeChart').getContext('2d');
+            volumeChart = new Chart(ctxVolume, {
+                type: 'bar',
+                data: { labels: dates.slice(-7), datasets: [{ label: 'Calls', data: dates.slice(-7).map(() => 40 + Math.random() * 20), backgroundColor: '#10b981' }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#1e2532' }, ticks: { color: '#8b92a7' } }, x: { grid: { display: false }, ticks: { color: '#8b92a7' } } } }
+            });
+        }
+
+        function checkAlerts(kpis) {
+            const alertsDiv = document.getElementById('alerts');
+            alertsDiv.textContent = '';
+
+            const createAlert = (title, message) => {
+                const box = document.createElement('div');
+                box.className = 'alert-box show';
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'alert-title';
+                titleDiv.textContent = title;
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'alert-message';
+                msgDiv.textContent = message;
+                box.appendChild(titleDiv);
+                box.appendChild(msgDiv);
+                return box;
+            };
+
+            if (kpis.totalCost && kpis.totalCost > 50) {
+                alertsDiv.appendChild(createAlert('💰 Cost Budget Alert', `Total cost ($${kpis.totalCost.toFixed(2)}) exceeded $50. Consider switching models.`));
+            }
+            if (kpis.errorRate && kpis.errorRate > 20) {
+                alertsDiv.appendChild(createAlert('🔥 High Error Rate', `Error rate (${kpis.errorRate.toFixed(1)}%) is critically high.`));
+            }
+            if (kpis.flaggedCallsCount && kpis.flaggedCallsCount > 20) {
+                alertsDiv.appendChild(createAlert('🚩 Multiple Flagged Calls', `${kpis.flaggedCallsCount} calls flagged. Quality degradation detected.`));
+            }
+        }
+    </script>
+</body>
+</html>
