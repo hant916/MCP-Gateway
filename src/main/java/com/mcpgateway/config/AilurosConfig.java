@@ -1,6 +1,7 @@
 package com.mcpgateway.config;
 
 import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.scheduling.annotation.EnableAsync;
 
 /**
@@ -10,6 +11,10 @@ import org.springframework.scheduling.annotation.EnableAsync;
  */
 @Configuration
 @EnableAsync
+@EnableConfigurationProperties({
+    AilurosObservabilityProperties.class,
+    AilurosGovernanceProperties.class
+})
 public class AilurosConfig {
     // Additional configuration can be added here in future versions:
     // - Text truncation limits

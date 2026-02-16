@@ -2,7 +2,13 @@ package com.mcpgateway.controller.ailuros;
 
 import com.mcpgateway.demo.AilurosDataGenerator;
 import com.mcpgateway.dto.ailuros.*;
+import com.mcpgateway.domain.ailuros.AcCall;
+import com.mcpgateway.service.ailuros.AilurosAggregationService;
+import com.mcpgateway.service.ailuros.AilurosBudgetGuardService;
 import com.mcpgateway.service.ailuros.AilurosControlService;
+import com.mcpgateway.service.ailuros.AilurosIngestService;
+import com.mcpgateway.service.ailuros.AilurosRegressionService;
+import com.mcpgateway.service.ailuros.AilurosReleaseGateService;
 import com.mcpgateway.service.ailuros.ComparisonService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -20,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -46,6 +53,11 @@ public class AilurosControlController {
     private final AilurosControlService controlService;
     private final ComparisonService comparisonService;
     private final AilurosDataGenerator dataGenerator;
+    private final AilurosIngestService ingestService;
+    private final AilurosAggregationService aggregationService;
+    private final AilurosBudgetGuardService budgetGuardService;
+    private final AilurosReleaseGateService releaseGateService;
+    private final AilurosRegressionService regressionService;
 
     /**
      * Generate demo data
@@ -133,6 +145,24 @@ public class AilurosControlController {
             @RequestParam(required = false) String tz) {
         CallDetailDTO call = controlService.getCallDetail(id, from, to, tz);
         return ResponseEntity.ok(call);
+    }
+
+    /**
+     * Ingest call_event v1 from gateway.
+     *
+     * POST /api/ailuros/ingest
+     */
+    @PostMapping("/ingest")
+    @Operation(summary = "Ingest call_event v1",
+               description = "Persist gateway call event payload and derived flags")
+    public ResponseEntity<Map<String, Object>> ingest(@RequestBody CallEventV1DTO event) {
+        AcCall call = ingestService.ingest(event);
+        return ResponseEntity.ok(Map.of(
+            "status", "ok",
+            "id", call.getId(),
+            "trace_id", call.getTraceId(),
+            "span_id", call.getSpanId()
+        ));
     }
 
     /**
@@ -271,6 +301,155 @@ public class AilurosControlController {
 
         OverviewKpiDTO kpis = controlService.getOverviewKpis(project, fromDate, toDate, tz);
         return ResponseEntity.ok(kpis);
+    }
+
+    /**
+     * Aggregated stats for dashboard.
+     *
+     * GET /api/ailuros/stats?app_id=clarity&env=prod&range=7d
+     */
+    @GetMapping("/stats")
+    @Operation(summary = "Get aggregated app stats",
+               description = "Returns reliability, error rate, flagged count, p95 and cost for one time window")
+    public ResponseEntity<AilurosStatsDTO> getStats(
+        @RequestParam(name = "app_id", required = false) String appId,
+        @RequestParam(required = false) String env,
+        @RequestParam(required = false, defaultValue = "7d") String range,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
+        @RequestParam(required = false) String tz) {
+        return ResponseEntity.ok(aggregationService.getStats(appId, env, range, from, to, tz));
+    }
+
+    @GetMapping("/timeseries/cost")
+    @Operation(summary = "Get daily cost series", description = "Daily cost in USD for selected app/env/window")
+    public ResponseEntity<TimeseriesResponseDTO> getCostTimeseries(
+        @RequestParam(name = "app_id", required = false) String appId,
+        @RequestParam(required = false) String env,
+        @RequestParam(required = false, defaultValue = "30d") String range,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
+        @RequestParam(required = false) String tz) {
+        return ResponseEntity.ok(aggregationService.getCostTimeseries(appId, env, range, from, to, tz));
+    }
+
+    @GetMapping("/timeseries/error")
+    @Operation(summary = "Get daily error rate series", description = "Daily error rate (%) for selected app/env/window")
+    public ResponseEntity<TimeseriesResponseDTO> getErrorTimeseries(
+        @RequestParam(name = "app_id", required = false) String appId,
+        @RequestParam(required = false) String env,
+        @RequestParam(required = false, defaultValue = "30d") String range,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
+        @RequestParam(required = false) String tz) {
+        return ResponseEntity.ok(aggregationService.getErrorTimeseries(appId, env, range, from, to, tz));
+    }
+
+    @GetMapping("/timeseries/flagged")
+    @Operation(summary = "Get daily flagged count series", description = "Daily flagged count for selected app/env/window")
+    public ResponseEntity<TimeseriesResponseDTO> getFlaggedTimeseries(
+        @RequestParam(name = "app_id", required = false) String appId,
+        @RequestParam(required = false) String env,
+        @RequestParam(required = false, defaultValue = "30d") String range,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
+        @RequestParam(required = false) String tz) {
+        return ResponseEntity.ok(aggregationService.getFlaggedTimeseries(appId, env, range, from, to, tz));
+    }
+
+    @GetMapping("/incidents")
+    @Operation(summary = "Get incidents", description = "Returns flagged/error calls sorted by severity for drill-down")
+    public ResponseEntity<IncidentsResponseDTO> getIncidents(
+        @RequestParam(name = "app_id", required = false) String appId,
+        @RequestParam(required = false) String env,
+        @RequestParam(required = false, defaultValue = "7d") String range,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
+        @RequestParam(required = false) String tz,
+        @RequestParam(required = false, defaultValue = "50") int limit) {
+        return ResponseEntity.ok(aggregationService.getIncidents(appId, env, range, from, to, tz, limit));
+    }
+
+    @GetMapping("/budget/policies")
+    @Operation(summary = "Get budget policies", description = "List budget guard policies by app/env")
+    public ResponseEntity<java.util.List<BudgetPolicyDTO>> getBudgetPolicies(
+        @RequestParam(name = "app_id", required = false) String appId,
+        @RequestParam(required = false) String env) {
+        return ResponseEntity.ok(budgetGuardService.getPolicies(appId, env));
+    }
+
+    @PostMapping("/budget/policies")
+    @Operation(summary = "Upsert budget policy", description = "Create or update budget policy")
+    public ResponseEntity<BudgetPolicyDTO> upsertBudgetPolicy(@RequestBody BudgetPolicyDTO request) {
+        return ResponseEntity.ok(budgetGuardService.savePolicy(request));
+    }
+
+    @PostMapping("/budget/evaluate")
+    @Operation(summary = "Evaluate budget policies", description = "Manually triggers budget evaluation")
+    public ResponseEntity<BudgetEvaluateResponseDTO> evaluateBudget(
+        @RequestParam(name = "app_id", required = false) String appId,
+        @RequestParam(required = false) String env,
+        @RequestParam(required = false) String route) {
+        return ResponseEntity.ok(budgetGuardService.evaluatePolicies(appId, env, route, "manual"));
+    }
+
+    @GetMapping("/budget/status")
+    @Operation(summary = "Get budget status", description = "Returns month-to-date, forecast and daily cost under one window")
+    public ResponseEntity<BudgetStatusDTO> getBudgetStatus(
+        @RequestParam(name = "app_id", required = false) String appId,
+        @RequestParam(required = false) String env,
+        @RequestParam(required = false, defaultValue = "30d") String range,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
+        @RequestParam(required = false) String tz) {
+        return ResponseEntity.ok(budgetGuardService.getBudgetStatus(appId, env, range, from, to, tz));
+    }
+
+    @GetMapping("/release/baseline")
+    @Operation(summary = "Get release gate status", description = "Returns baseline, detected candidate and gate state")
+    public ResponseEntity<ReleaseGateStatusDTO> getReleaseBaseline(
+        @RequestParam(name = "app_id", required = false) String appId,
+        @RequestParam(required = false) String env,
+        @RequestParam(required = false) String route) {
+        return ResponseEntity.ok(releaseGateService.getReleaseStatus(appId, env, route));
+    }
+
+    @PostMapping("/release/baseline")
+    @Operation(summary = "Set release baseline", description = "Sets baseline model/prompt_version for one app/env/route")
+    public ResponseEntity<ReleaseBaselineDTO> setReleaseBaseline(@RequestBody ReleaseBaselineDTO request) {
+        return ResponseEntity.ok(releaseGateService.saveBaseline(request));
+    }
+
+    @PostMapping("/regression/run")
+    @Operation(summary = "Run regression", description = "Runs offline regression between baseline and candidate")
+    public ResponseEntity<RegressionRunDTO> runRegression(@RequestBody RegressionRunRequestDTO request) {
+        return ResponseEntity.ok(regressionService.runRegression(request));
+    }
+
+    @GetMapping("/regression/runs")
+    @Operation(summary = "List regression runs", description = "Lists regression runs by app/env/route and time window")
+    public ResponseEntity<java.util.List<RegressionRunDTO>> getRegressionRuns(
+        @RequestParam(name = "app_id", required = false) String appId,
+        @RequestParam(required = false) String env,
+        @RequestParam(required = false) String route,
+        @RequestParam(required = false, defaultValue = "30d") String range,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
+        @RequestParam(required = false) String tz,
+        @RequestParam(required = false, defaultValue = "50") int limit) {
+        return ResponseEntity.ok(regressionService.getRuns(appId, env, route, range, from, to, tz, limit));
+    }
+
+    @GetMapping("/regression/runs/{id}")
+    @Operation(summary = "Get regression run", description = "Gets one regression run detail")
+    public ResponseEntity<RegressionRunDTO> getRegressionRun(@PathVariable UUID id) {
+        return ResponseEntity.ok(regressionService.getRun(id));
+    }
+
+    @GetMapping("/regression/report/{id}")
+    @Operation(summary = "Get regression report", description = "Gets report payload in JSON (includes HTML)")
+    public ResponseEntity<RegressionReportDTO> getRegressionReport(@PathVariable UUID id) {
+        return ResponseEntity.ok(regressionService.getReport(id));
     }
 
     /**

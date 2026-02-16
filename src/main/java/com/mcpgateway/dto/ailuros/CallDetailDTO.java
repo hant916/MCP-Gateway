@@ -21,14 +21,22 @@ import java.util.UUID;
 public class CallDetailDTO {
     private UUID id;
     private String traceId;
+    private String spanId;
     private String projectKey;
+    private String appId;
     private String env;
+    private String route;
     private String status;
+    private String errorType;
+    private Integer httpStatus;
     private String provider;
     private String model;
     private BigDecimal temperature;
     private BigDecimal topP;
     private String promptRef;
+    private String promptVersion;
+    private Boolean streaming;
+    private String userTier;
 
     // Full text content
     private String requestText;
@@ -47,6 +55,8 @@ public class CallDetailDTO {
 
     // Metadata
     private String upstreamRequestId;
+    private Instant requestTs;
+    private Instant responseTs;
     private Instant createdAt;
     private String windowBucket;
     private List<String> flagReasonCodes;

@@ -3,15 +3,20 @@ package com.mcpgateway.service;
 import com.mcpgateway.domain.McpServer;
 import com.mcpgateway.domain.Session;
 import com.mcpgateway.dto.session.MessageRequest;
+import com.mcpgateway.service.ailuros.gateway.AilurosEventEmitterService;
+import com.mcpgateway.service.ailuros.gateway.CallEventBuilderService;
+import com.mcpgateway.service.ailuros.gateway.GatewayCallContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
 import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient;
@@ -24,10 +29,13 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
 import java.io.*;
+import java.math.BigDecimal;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
+import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -40,6 +48,8 @@ import jakarta.annotation.PreDestroy;
 public class McpServerConnectionService {
 
     private final WebClient webClient;
+    private final CallEventBuilderService callEventBuilder;
+    private final AilurosEventEmitterService eventEmitter;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // Connection management
@@ -47,9 +57,19 @@ public class McpServerConnectionService {
     private final Map<UUID, BlockingQueue<String>> streamableHttpQueues = new ConcurrentHashMap<>();
     private final Map<UUID, Sinks.Many<String>> websocketSinks = new ConcurrentHashMap<>();
     private final Map<UUID, Process> stdioProcesses = new ConcurrentHashMap<>();
+    private final Map<UUID, GatewayCallContext> streamingEventContexts = new ConcurrentHashMap<>();
     
     public void establishUpstreamSseConnection(UUID sessionId, McpServer mcpServer, SseEmitter clientEmitter) {
         String upstreamUrl = buildSseUrl(mcpServer, sessionId);
+        GatewayCallContext eventContext = callEventBuilder.startCall(
+            upstreamUrl,
+            mcpServer.getServiceName(),
+            "unknown",
+            true,
+            eventMetadata("sse", sessionId, upstreamUrl)
+        );
+        streamingEventContexts.put(sessionId, eventContext);
+
         log.info("=== Establishing upstream SSE connection ===");
         log.info("Session ID: {}", sessionId);
         log.info("MCP Server: {} (ID: {})", mcpServer.getServiceName(), mcpServer.getId());
@@ -87,8 +107,22 @@ public class McpServerConnectionService {
             // Subscribe to upstream events and forward to client
             Disposable subscription = eventStream
                 .doOnNext(event -> forwardEventToClient(clientEmitter, event))
-                .doOnError(error -> handleUpstreamError(sessionId, clientEmitter, error))
-                .doOnComplete(() -> handleUpstreamComplete(sessionId, clientEmitter))
+                .doOnError(error -> {
+                    streamingEventContexts.remove(sessionId);
+                    handleUpstreamError(sessionId, clientEmitter, error);
+                    emitErrorEvent(eventContext, resolveHttpStatus(error), resolveErrorType(error), error.getMessage(),
+                        List.of("provider_error"));
+                })
+                .doOnComplete(() -> {
+                    streamingEventContexts.remove(sessionId);
+                    emitSuccessEvent(eventContext, 200, 0, 0, BigDecimal.ZERO, List.of());
+                    handleUpstreamComplete(sessionId, clientEmitter);
+                })
+                .doOnCancel(() -> {
+                    streamingEventContexts.remove(sessionId);
+                    emitErrorEvent(eventContext, 499, "client_abort", "SSE client closed before complete",
+                        List.of("stream_interrupted"));
+                })
                 .subscribe();
             
             // Store subscription for cleanup
@@ -96,6 +130,8 @@ public class McpServerConnectionService {
             
         } catch (Exception e) {
             log.error("Failed to establish upstream SSE connection for session: {}", sessionId, e);
+            streamingEventContexts.remove(sessionId);
+            emitErrorEvent(eventContext, 502, "connection_failed", e.getMessage(), List.of("provider_error"));
             try {
                 clientEmitter.send(SseEmitter.event()
                     .name("error")
@@ -109,6 +145,14 @@ public class McpServerConnectionService {
     
     public void sendMessageToUpstream(UUID sessionId, McpServer mcpServer, MessageRequest message) {
         String messageUrl = buildMessageUrl(mcpServer, sessionId);
+        GatewayCallContext eventContext = callEventBuilder.startCall(
+            messageUrl,
+            mcpServer.getServiceName(),
+            extractModelHint(message),
+            false,
+            eventMetadata("http", sessionId, messageUrl)
+        );
+
         log.info("=== Sending message to upstream ===");
         log.info("Session ID: {}", sessionId);
         log.info("MCP Server: {} (ID: {})", mcpServer.getServiceName(), mcpServer.getId());
@@ -185,13 +229,44 @@ public class McpServerConnectionService {
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(upstreamMessage)
             .retrieve()
-            .bodyToMono(String.class)
-            .doOnNext(response -> log.info("Upstream response for session {}: {}", sessionId, response))
-            .doOnError(error -> log.error("Upstream message error for session {}: {}", sessionId, error.getMessage()))
+            .toEntity(String.class)
+            .doOnNext(response -> {
+                log.info("Upstream response for session {}: {}", sessionId, response.getBody());
+                CallEventBuilderService.ParsedUsage usage = callEventBuilder.parseUsage(response.getBody());
+                emitSuccessEvent(
+                    eventContext,
+                    response.getStatusCode().value(),
+                    usage.inputTokens(),
+                    usage.outputTokens(),
+                    usage.costUsd(),
+                    List.of()
+                );
+            })
+            .doOnError(error -> {
+                log.error("Upstream message error for session {}: {}", sessionId, error.getMessage());
+                emitErrorEvent(
+                    eventContext,
+                    resolveHttpStatus(error),
+                    resolveErrorType(error),
+                    error.getMessage(),
+                    List.of()
+                );
+            })
             .subscribe(); // Fire and forget - response comes through SSE
     }
     
     public void closeUpstreamConnection(UUID sessionId) {
+        GatewayCallContext context = streamingEventContexts.remove(sessionId);
+        if (context != null) {
+            emitErrorEvent(
+                context,
+                499,
+                "stream_interrupted",
+                "Connection closed before upstream completion",
+                List.of("stream_interrupted")
+            );
+        }
+
         Disposable connection = upstreamConnections.remove(sessionId);
         if (connection != null && !connection.isDisposed()) {
             connection.dispose();
@@ -407,6 +482,15 @@ public class McpServerConnectionService {
 
     public StreamingResponseBody establishUpstreamStreamableHttpConnection(UUID sessionId, McpServer mcpServer) {
         String upstreamUrl = buildSseUrl(mcpServer, sessionId);
+        GatewayCallContext eventContext = callEventBuilder.startCall(
+            upstreamUrl,
+            mcpServer.getServiceName(),
+            "unknown",
+            true,
+            eventMetadata("streamable_http", sessionId, upstreamUrl)
+        );
+        streamingEventContexts.put(sessionId, eventContext);
+
         log.info("=== Establishing upstream Streamable HTTP connection ===");
         log.info("Session ID: {}", sessionId);
         log.info("MCP Server: {} (ID: {})", mcpServer.getServiceName(), mcpServer.getId());
@@ -438,6 +522,14 @@ public class McpServerConnectionService {
                 })
                 .doOnError(error -> {
                     log.error("Upstream Streamable HTTP error for session: {}", sessionId, error);
+                    streamingEventContexts.remove(sessionId);
+                    emitErrorEvent(
+                        eventContext,
+                        resolveHttpStatus(error),
+                        resolveErrorType(error),
+                        error.getMessage(),
+                        List.of("provider_error")
+                    );
                     try {
                         messageQueue.put("{\"error\":\"Upstream connection error: " + error.getMessage() + "\"}");
                     } catch (InterruptedException e) {
@@ -446,6 +538,8 @@ public class McpServerConnectionService {
                 })
                 .doOnComplete(() -> {
                     log.info("Upstream Streamable HTTP connection completed for session: {}", sessionId);
+                    streamingEventContexts.remove(sessionId);
+                    emitSuccessEvent(eventContext, 200, 0, 0, BigDecimal.ZERO, List.of());
                     try {
                         messageQueue.put("{\"status\":\"upstream_connection_closed\"}");
                     } catch (InterruptedException e) {
@@ -458,6 +552,8 @@ public class McpServerConnectionService {
 
         } catch (Exception e) {
             log.error("Failed to establish upstream Streamable HTTP connection for session: {}", sessionId, e);
+            streamingEventContexts.remove(sessionId);
+            emitErrorEvent(eventContext, 502, "connection_failed", e.getMessage(), List.of("provider_error"));
             try {
                 messageQueue.put("{\"error\":\"Failed to connect to upstream MCP server\"}");
             } catch (InterruptedException ie) {
@@ -476,6 +572,14 @@ public class McpServerConnectionService {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 log.info("Streamable HTTP streaming interrupted for session: {}", sessionId);
+                streamingEventContexts.remove(sessionId);
+                emitErrorEvent(
+                    eventContext,
+                    499,
+                    "stream_interrupted",
+                    "Client interrupted streamable-http connection",
+                    List.of("stream_interrupted")
+                );
             } finally {
                 closeStreamableHttpConnection(sessionId);
             }
@@ -487,6 +591,17 @@ public class McpServerConnectionService {
     }
 
     private void closeStreamableHttpConnection(UUID sessionId) {
+        GatewayCallContext context = streamingEventContexts.remove(sessionId);
+        if (context != null) {
+            emitErrorEvent(
+                context,
+                499,
+                "stream_interrupted",
+                "Streamable HTTP closed before completion",
+                List.of("stream_interrupted")
+            );
+        }
+
         streamableHttpQueues.remove(sessionId);
         Disposable connection = upstreamConnections.remove(sessionId);
         if (connection != null && !connection.isDisposed()) {
@@ -748,11 +863,116 @@ public class McpServerConnectionService {
 
         // Clear streamable HTTP queues
         streamableHttpQueues.clear();
+        streamingEventContexts.clear();
 
         log.info("McpServerConnectionService cleanup completed");
     }
 
     // ==================== Helper Methods ====================
+
+    private void emitSuccessEvent(GatewayCallContext context,
+                                  int httpStatus,
+                                  Integer inputTokens,
+                                  Integer outputTokens,
+                                  BigDecimal costUsd,
+                                  List<String> flags) {
+        if (context == null || !context.markFinalized()) {
+            return;
+        }
+
+        eventEmitter.emitAsync(callEventBuilder.buildSuccessEvent(
+            context,
+            httpStatus,
+            inputTokens,
+            outputTokens,
+            costUsd,
+            flags,
+            null
+        ));
+    }
+
+    private void emitErrorEvent(GatewayCallContext context,
+                                Integer httpStatus,
+                                String errorType,
+                                String errorMessage,
+                                List<String> flags) {
+        if (context == null || !context.markFinalized()) {
+            return;
+        }
+
+        eventEmitter.emitAsync(callEventBuilder.buildErrorEvent(
+            context,
+            httpStatus,
+            errorType,
+            errorMessage,
+            flags,
+            null
+        ));
+    }
+
+    private Integer resolveHttpStatus(Throwable error) {
+        if (error instanceof WebClientResponseException webError) {
+            return webError.getStatusCode().value();
+        }
+        return null;
+    }
+
+    private String resolveErrorType(Throwable error) {
+        if (error == null) {
+            return "unknown_error";
+        }
+
+        if (error instanceof WebClientResponseException webError) {
+            return "http_" + webError.getStatusCode().value();
+        }
+
+        String message = error.getMessage();
+        if (message == null) {
+            return error.getClass().getSimpleName();
+        }
+
+        String normalized = message.toLowerCase(Locale.ROOT);
+        if (normalized.contains("timeout")) {
+            return "timeout";
+        }
+        if (normalized.contains("abort") || normalized.contains("cancel") || normalized.contains("interrupted")) {
+            return "client_abort";
+        }
+        if (normalized.contains("refused")) {
+            return "connection_refused";
+        }
+        return error.getClass().getSimpleName();
+    }
+
+    private Map<String, Object> eventMetadata(String transport, UUID sessionId, String upstreamUrl) {
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("transport", transport);
+        metadata.put("session_id", sessionId.toString());
+        if (upstreamUrl != null && !upstreamUrl.isBlank()) {
+            metadata.put("upstream_url", upstreamUrl);
+        }
+        return metadata;
+    }
+
+    private String extractModelHint(MessageRequest message) {
+        if (message == null) {
+            return "unknown";
+        }
+
+        if (message.getParams() != null && message.getParams().hasNonNull("model")) {
+            return message.getParams().get("model").asText();
+        }
+
+        if (message.getArguments() != null && message.getArguments().hasNonNull("model")) {
+            return message.getArguments().get("model").asText();
+        }
+
+        if (message.getData() != null && message.getData().hasNonNull("model")) {
+            return message.getData().get("model").asText();
+        }
+
+        return "unknown";
+    }
 
     private Object prepareUpstreamMessage(MessageRequest message) {
         if (message.isJsonRpcFormat()) {

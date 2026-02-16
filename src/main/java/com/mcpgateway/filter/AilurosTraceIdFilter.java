@@ -26,6 +26,7 @@ import java.util.UUID;
 public class AilurosTraceIdFilter implements Filter {
 
     public static final String TRACE_ID_HEADER = "X-Ailuros-Trace-Id";
+    public static final String TRACE_ID_HEADER_ALIAS = "X-Trace-Id";
     public static final String TRACE_ID_ATTRIBUTE = "ailuros.traceId";
 
     @Override
@@ -37,6 +38,9 @@ public class AilurosTraceIdFilter implements Filter {
 
         // Check if trace ID already exists (from upstream)
         String traceId = httpRequest.getHeader(TRACE_ID_HEADER);
+        if (traceId == null || traceId.trim().isEmpty()) {
+            traceId = httpRequest.getHeader(TRACE_ID_HEADER_ALIAS);
+        }
 
         // Generate new trace ID if not present
         if (traceId == null || traceId.trim().isEmpty()) {
@@ -48,6 +52,7 @@ public class AilurosTraceIdFilter implements Filter {
 
         // Add to response headers
         httpResponse.setHeader(TRACE_ID_HEADER, traceId);
+        httpResponse.setHeader(TRACE_ID_HEADER_ALIAS, traceId);
 
         // Add to MDC for structured logging
         org.slf4j.MDC.put("traceId", traceId);

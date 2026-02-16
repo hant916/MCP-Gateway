@@ -14,6 +14,8 @@ header{margin-bottom:18px;border-bottom:1px solid #1e2532;padding-bottom:14px}
 h1{font-size:34px;font-weight:700;margin-bottom:6px;background:linear-gradient(135deg,#6e84ff,#5bd0ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .subtitle{color:#8b92a7;font-size:13px}
 .actions{display:flex;gap:10px;align-items:center}
+.filter-input{border:1px solid #2b3343;background:#141b2b;color:#d7dcee;border-radius:8px;padding:8px 10px;font-size:12px;font-weight:600}
+.filter-input:focus{outline:none;border-color:#667eea}
 .window-switch{display:inline-flex;border:1px solid #2b3343;border-radius:8px;overflow:hidden;background:#141b2b}
 .window-btn{border:0;background:transparent;color:#8b92a7;font-size:12px;font-weight:700;padding:9px 12px;cursor:pointer}
 .window-btn.active{background:#667eea;color:#fff}
@@ -66,6 +68,12 @@ pre{background:#0d1320;border:1px solid #273045;border-radius:8px;padding:10px;f
 .compare-card{background:#0f1521;border:1px solid #273045;border-radius:8px;padding:8px 10px}
 .compare-label{color:#8b92a7;font-size:11px;text-transform:uppercase;margin-bottom:3px}
 .compare-value{font-size:14px;font-weight:700}
+.gate-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.gate-pill{display:inline-block;border-radius:999px;padding:3px 9px;font-size:11px;font-weight:700;text-transform:uppercase}
+.gate-pill.pass{background:#10b9811f;border:1px solid #10b98166;color:#10b981}
+.gate-pill.fail{background:#ef44441f;border:1px solid #ef444466;color:#ef4444}
+.gate-pill.pending{background:#f59e0b1f;border:1px solid #f59e0b66;color:#f59e0b}
+.kv-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-bottom:10px}
 .alert-box{background:#ef444410;border:1px solid #ef444440;border-radius:8px;padding:12px;margin-bottom:10px}
 .alert-title{font-size:13px;font-weight:700;color:#ef4444;margin-bottom:4px}
 .alert-msg{font-size:12px;color:#e4e6eb}
@@ -82,10 +90,18 @@ pre{background:#0d1320;border:1px solid #273045;border-radius:8px;padding:10px;f
 <p id="windowLabel" class="subtitle">LLM Call Observability & Governance Dashboard</p>
 </div>
 <div class="actions">
-<div class="window-switch">
-<button id="window7" class="window-btn" onclick="setWindowDays(7)">7D</button>
-<button id="window30" class="window-btn active" onclick="setWindowDays(30)">30D</button>
-</div>
+<input id="appFilter" class="filter-input" value="clarity" placeholder="App ID" />
+<select id="envFilter" class="filter-input">
+<option value="prod" selected>prod</option>
+<option value="stage">stage</option>
+<option value="dev">dev</option>
+<option value="">all env</option>
+</select>
+<select id="rangeFilter" class="filter-input">
+<option value="24h">24h</option>
+<option value="7d" selected>7d</option>
+<option value="30d">30d</option>
+</select>
 <button class="refresh-btn" onclick="loadData()">Refresh Data</button>
 </div>
 </div>
@@ -102,7 +118,7 @@ pre{background:#0d1320;border:1px solid #273045;border-radius:8px;padding:10px;f
 
 <div class="chart-grid">
 <div class="chart-card full">
-<h3 id="costTitle" class="chart-title">Daily Cost Trend (Last 30 Days)</h3>
+<h3 id="costTitle" class="chart-title">Daily Cost Trend</h3>
 <div class="chart-container"><canvas id="costChart"></canvas></div>
 </div>
 <div class="chart-card">
@@ -110,20 +126,20 @@ pre{background:#0d1320;border:1px solid #273045;border-radius:8px;padding:10px;f
 <div class="chart-container"><canvas id="errorChart"></canvas></div>
 </div>
 <div class="chart-card">
-<h3 id="volumeTitle" class="chart-title">Daily Call Volume</h3>
+<h3 id="volumeTitle" class="chart-title">Daily Flagged Trend</h3>
 <div class="chart-container"><canvas id="volumeChart"></canvas></div>
 </div>
 </div>
 
 <div class="panel">
 <div class="section-head">
-<h3 id="flaggedTitle" class="chart-title">Flagged Calls Drill-down</h3>
+<h3 id="flaggedTitle" class="chart-title">Incidents Drill-down</h3>
 <span id="flaggedMeta" class="meta"></span>
 </div>
 <div id="rootCause" class="root-cause"></div>
 <div class="table-wrap">
 <table>
-<thead><tr><th>Time</th><th>Status</th><th>Model</th><th>Prompt Ref</th><th>Latency</th><th>Cost</th><th>Flags</th><th>Why</th><th>Actions</th></tr></thead>
+<thead><tr><th>Time</th><th>Status</th><th>Route</th><th>Model</th><th>Prompt Version</th><th>Latency</th><th>Cost</th><th>Flags</th><th>Actions</th></tr></thead>
 <tbody id="flaggedBody"></tbody>
 </table>
 </div>
@@ -140,16 +156,24 @@ pre{background:#0d1320;border:1px solid #273045;border-radius:8px;padding:10px;f
 </div>
 </div>
 
+<div class="two-col">
+<div class="panel">
+<h3 class="chart-title">Budget Guard</h3>
+<div id="budgetPanel" class="placeholder">Loading budget status...</div>
+</div>
+<div class="panel">
+<h3 class="chart-title">Release Gate</h3>
+<div id="releasePanel" class="placeholder">Loading release gate status...</div>
+</div>
+</div>
+
 <script>
 const API_BASE = '/api/ailuros';
 let costChart, errorChart, volumeChart;
 const state = {
-  projectKey: 'default',
-  windowDays: 30,
-  from: null,
-  to: null,
-  pinnedStart: null,
-  pinnedEnd: null,
+  appId: 'clarity',
+  env: 'prod',
+  range: '7d',
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
   flaggedCalls: [],
   selectedCallId: null,
@@ -158,72 +182,79 @@ const state = {
   compareResult: null,
   detailCache: {},
   windowMeta: null,
+  stats: null,
+  budgetStatus: null,
+  releaseStatus: null,
+  regressionRuns: [],
   flagPolicyVersion: null,
   reliabilityFormula: null
 };
 window.onload = () => {
   hydrateWindowFromUrl();
-  setWindowDays(state.windowDays);
+  bindFilters();
+  syncFilters();
+  loadData();
 };
 
 function hydrateWindowFromUrl() {
   const query = new URLSearchParams(window.location.search);
-  const start = query.get('start');
-  const end = query.get('end');
+  const appId = query.get('app_id');
+  const env = query.get('env');
+  const range = query.get('range');
   const tz = query.get('tz');
+  if (appId) state.appId = appId;
+  if (env !== null) state.env = env;
+  if (range) state.range = range;
   if (tz) state.timezone = tz;
-  if (start && end) {
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    if (!Number.isNaN(startDate.getTime()) && !Number.isNaN(endDate.getTime()) && endDate > startDate) {
-      state.pinnedStart = startDate.toISOString();
-      state.pinnedEnd = endDate.toISOString();
-      const diffDays = Math.round((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
-      if (diffDays <= 7) {
-        state.windowDays = 7;
-      } else {
-        state.windowDays = 30;
-      }
-    }
-  }
 }
 
-function setWindowDays(days) {
-  state.windowDays = days;
-  state.pinnedStart = null;
-  state.pinnedEnd = null;
-  document.getElementById('window7').classList.toggle('active', days === 7);
-  document.getElementById('window30').classList.toggle('active', days === 30);
-  loadData();
+function bindFilters() {
+  document.getElementById('appFilter').addEventListener('change', loadData);
+  document.getElementById('envFilter').addEventListener('change', loadData);
+  document.getElementById('rangeFilter').addEventListener('change', loadData);
 }
 
-function getWindowRange(days) {
-  const to = new Date();
-  const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
-  return { from: from.toISOString(), to: to.toISOString() };
+function syncFilters() {
+  document.getElementById('appFilter').value = state.appId;
+  document.getElementById('envFilter').value = state.env;
+  document.getElementById('rangeFilter').value = state.range;
+}
+
+function syncStateFromFilters() {
+  state.appId = (document.getElementById('appFilter').value || 'clarity').trim();
+  state.env = document.getElementById('envFilter').value || '';
+  state.range = document.getElementById('rangeFilter').value || '7d';
+}
+
+function commonParams() {
+  const params = new URLSearchParams({ app_id: state.appId, range: state.range, tz: state.timezone });
+  if (state.env) params.set('env', state.env);
+  return params;
 }
 
 function updateLabels() {
-  document.getElementById('windowLabel').textContent = `Window: Last ${state.windowDays} days (${state.from.slice(0, 10)} to ${state.to.slice(0, 10)})`;
-  document.getElementById('costTitle').textContent = `Daily Cost Trend (Last ${state.windowDays} Days)`;
-  document.getElementById('errorTitle').textContent = `Daily Error Rate (%) - Last ${state.windowDays} Days`;
-  document.getElementById('volumeTitle').textContent = `Daily Call Volume - Last ${state.windowDays} Days`;
-  document.getElementById('flaggedTitle').textContent = `Flagged Calls Drill-down (Last ${state.windowDays} Days)`;
+  const start = state.windowMeta?.start ? String(state.windowMeta.start).slice(0, 10) : '--';
+  const end = state.windowMeta?.end ? String(state.windowMeta.end).slice(0, 10) : '--';
+  const envLabel = state.env || 'all env';
+  document.getElementById('windowLabel').textContent = `App ${state.appId} | ${envLabel} | ${state.range} (${start} to ${end})`;
+  document.getElementById('costTitle').textContent = `Daily Cost Trend (${state.range})`;
+  document.getElementById('errorTitle').textContent = `Daily Error Rate (%) (${state.range})`;
+  document.getElementById('volumeTitle').textContent = `Daily Flagged Trend (${state.range})`;
+  document.getElementById('flaggedTitle').textContent = `Incidents Drill-down (${state.range})`;
 }
 
 function updateUrlWindow() {
-  const query = new URLSearchParams(window.location.search);
-  query.set('start', state.from);
-  query.set('end', state.to);
-  query.set('tz', state.timezone);
+  const query = commonParams();
+  if (state.windowMeta?.start) query.set('start', state.windowMeta.start);
+  if (state.windowMeta?.end) query.set('end', state.windowMeta.end);
   const nextUrl = `${window.location.pathname}?${query.toString()}`;
   window.history.replaceState({}, '', nextUrl);
 }
 
 function renderCoherenceStrip() {
   const strip = document.getElementById('coherenceStrip');
-  const windowStart = state.windowMeta?.start ? String(state.windowMeta.start).slice(0, 10) : state.from.slice(0, 10);
-  const windowEnd = state.windowMeta?.end ? String(state.windowMeta.end).slice(0, 10) : state.to.slice(0, 10);
+  const windowStart = state.windowMeta?.start ? String(state.windowMeta.start).slice(0, 10) : '--';
+  const windowEnd = state.windowMeta?.end ? String(state.windowMeta.end).slice(0, 10) : '--';
   const timezone = state.windowMeta?.timezone || state.timezone || 'UTC';
   const policy = state.flagPolicyVersion || 'unknown';
   const formula = state.reliabilityFormula || '1 - (error_calls / total_calls)';
@@ -237,42 +268,40 @@ function renderCoherenceStrip() {
 
 async function loadData() {
   try {
-    const r = state.pinnedStart && state.pinnedEnd
-      ? { from: state.pinnedStart, to: state.pinnedEnd }
-      : getWindowRange(state.windowDays);
-    state.from = r.from; state.to = r.to;
+    syncStateFromFilters();
     state.detailCache = {};
     state.compareResult = null;
-    updateLabels();
 
-    const params = new URLSearchParams({ projectKey: state.projectKey, from: state.from, to: state.to, tz: state.timezone });
-    const flaggedParams = new URLSearchParams({
-      projectKey: state.projectKey,
-      from: state.from,
-      to: state.to,
-      tz: state.timezone,
-      flagged: 'true',
-      page: '0',
-      size: '50'
-    });
-
-    const [kpis, costSummary, flaggedPage] = await Promise.all([
-      fetchJSON(`${API_BASE}/overview?${params.toString()}`),
-      fetchJSON(`${API_BASE}/cost/summary?${params.toString()}`),
-      fetchJSON(`${API_BASE}/calls?${flaggedParams.toString()}`)
+    const params = commonParams();
+    const [stats, costSeries, errorSeries, flaggedSeries, incidentsResponse, budgetStatus, releaseStatus, regressionRuns] = await Promise.all([
+      fetchJSON(`${API_BASE}/stats?${params.toString()}`),
+      fetchJSON(`${API_BASE}/timeseries/cost?${params.toString()}`),
+      fetchJSON(`${API_BASE}/timeseries/error?${params.toString()}`),
+      fetchJSON(`${API_BASE}/timeseries/flagged?${params.toString()}`),
+      fetchJSON(`${API_BASE}/incidents?${params.toString()}&limit=50`),
+      fetchJSON(`${API_BASE}/budget/status?${params.toString()}`),
+      fetchJSON(`${API_BASE}/release/baseline?${params.toString()}`),
+      fetchJSON(`${API_BASE}/regression/runs?${params.toString()}&limit=20`)
     ]);
 
-    state.flaggedCalls = Array.isArray(flaggedPage.content) ? flaggedPage.content : [];
-    state.windowMeta = kpis.window || null;
-    state.flagPolicyVersion = kpis.flagPolicy?.version || null;
-    state.reliabilityFormula = kpis.kpiFormulas?.reliability || null;
+    state.stats = stats;
+    state.flaggedCalls = Array.isArray(incidentsResponse.incidents) ? incidentsResponse.incidents : [];
+    state.windowMeta = stats.window || costSeries.window || errorSeries.window || flaggedSeries.window || null;
+    state.flagPolicyVersion = stats.flagPolicy?.version || null;
+    state.reliabilityFormula = stats.kpiFormulas?.reliability || null;
+    state.budgetStatus = budgetStatus;
+    state.releaseStatus = releaseStatus;
+    state.regressionRuns = Array.isArray(regressionRuns) ? regressionRuns : [];
+    updateLabels();
     updateUrlWindow();
     renderCoherenceStrip();
     reconcileSelection();
-    renderKPIs(kpis, costSummary);
-    renderCharts(costSummary);
-    renderAlerts(kpis);
+    renderKPIs(stats);
+    renderCharts(costSeries, errorSeries, flaggedSeries);
+    renderAlerts(stats);
     renderFlagged();
+    renderBudgetGuard(state.budgetStatus);
+    renderReleaseGate(state.releaseStatus, state.regressionRuns);
 
     if (state.selectedCallId) {
       await loadCallDetail(state.selectedCallId, false);
@@ -320,34 +349,27 @@ function createKpiCard(label, value, trend, trendClass = '') {
   return card;
 }
 
-function renderKPIs(kpis, costSummary) {
+function renderKPIs(kpis) {
   const node = document.getElementById('kpis');
   node.textContent = '';
-  const reliability = Number(kpis.reliabilityScore || 0);
+  const reliability = Number(kpis.reliability || 0);
   const errorRate = Number(kpis.errorRate || 0);
   const totalCalls = Number(kpis.totalCalls || 0);
-  const flagged = Number(kpis.flaggedCallsCount || 0);
-  const totalCost = Number(costSummary.totalCost ?? kpis.totalCost ?? 0);
-  const trend = Number(kpis.costTrend || 0);
-  const trendArrow = trend > 0 ? 'UP' : trend < 0 ? 'DOWN' : 'FLAT';
+  const flagged = Number(kpis.flaggedCount || 0);
+  const totalCost = Number(kpis.totalCost || 0);
+  const topRisk = (kpis.topRiskDriver || 'none').toUpperCase();
 
   node.appendChild(createKpiCard('Reliability', `${reliability.toFixed(1)}%`, `${totalCalls} calls, ${errorRate.toFixed(1)}% errors`));
-  node.appendChild(createKpiCard('Flagged Calls', `${flagged}`, `${Number(kpis.flaggedPercentage || 0).toFixed(1)}% of total`));
-  node.appendChild(createKpiCard('Total Cost', `$${totalCost.toFixed(2)}`, `${trendArrow} ${Math.abs(trend).toFixed(1)}% vs last period`, trend > 0 ? 'up' : trend < 0 ? 'down' : ''));
-  node.appendChild(createKpiCard('p95 Latency (OK Calls)', kpis.p95LatencyMs ? `${Math.round(Number(kpis.p95LatencyMs))}ms` : 'N/A', '95th percentile of successful calls'));
+  node.appendChild(createKpiCard('Flagged Calls', `${flagged}`, `${Number(kpis.flaggedRate || 0).toFixed(1)}% of total`));
+  node.appendChild(createKpiCard('Total Cost', `$${totalCost.toFixed(2)}`, `${state.range} window`));
+  node.appendChild(createKpiCard('p95 Latency (OK Calls)', kpis.p95LatencyMs != null ? `${Math.round(Number(kpis.p95LatencyMs))}ms` : 'N/A', '95th percentile of successful calls'));
+  node.appendChild(createKpiCard('Top Risk Driver', topRisk, 'Most frequent incident trigger'));
 }
 
-function normalizeDailySeries(daily) {
-  const byDate = new Map((daily || []).map(row => [row.date, row]));
-  const end = new Date(state.to); end.setHours(0, 0, 0, 0);
-  const out = [];
-  for (let i = state.windowDays - 1; i >= 0; i--) {
-    const d = new Date(end); d.setDate(end.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
-    const row = byDate.get(key) || {};
-    out.push({ date: key, cost: Number(row.cost || 0), errorRate: Number(row.errorRate || 0), callCount: Number(row.callCount || 0) });
-  }
-  return out;
+function indexSeries(points) {
+  const map = new Map();
+  (points || []).forEach(point => map.set(point.date, Number(point.value || 0)));
+  return map;
 }
 
 function chartOptions() {
@@ -362,9 +384,11 @@ function chartOptions() {
   };
 }
 
-function renderCharts(costSummary) {
-  const rows = normalizeDailySeries(costSummary.dailyCosts || []);
-  const labels = rows.map(r => r.date);
+function renderCharts(costSeries, errorSeries, flaggedSeries) {
+  const costMap = indexSeries(costSeries.points || []);
+  const errorMap = indexSeries(errorSeries.points || []);
+  const flaggedMap = indexSeries(flaggedSeries.points || []);
+  const labels = [...costMap.keys()];
 
   if (costChart) costChart.destroy();
   if (errorChart) errorChart.destroy();
@@ -372,19 +396,19 @@ function renderCharts(costSummary) {
 
   costChart = new Chart(document.getElementById('costChart'), {
     type: 'line',
-    data: { labels, datasets: [{ data: rows.map(r => r.cost), borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,.1)', fill: true, tension: .35 }] },
+    data: { labels, datasets: [{ data: labels.map(l => costMap.get(l) || 0), borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,.1)', fill: true, tension: .35 }] },
     options: chartOptions()
   });
 
   errorChart = new Chart(document.getElementById('errorChart'), {
     type: 'bar',
-    data: { labels, datasets: [{ data: rows.map(r => r.errorRate), backgroundColor: '#ef4444' }] },
+    data: { labels, datasets: [{ data: labels.map(l => errorMap.get(l) || 0), backgroundColor: '#ef4444' }] },
     options: chartOptions()
   });
 
   volumeChart = new Chart(document.getElementById('volumeChart'), {
     type: 'bar',
-    data: { labels, datasets: [{ data: rows.map(r => r.callCount), backgroundColor: '#10b981' }] },
+    data: { labels, datasets: [{ data: labels.map(l => flaggedMap.get(l) || 0), backgroundColor: '#10b981' }] },
     options: chartOptions()
   });
 }
@@ -393,9 +417,9 @@ function renderAlerts(kpis) {
   const alerts = document.getElementById('alerts');
   alerts.textContent = '';
   const list = [];
-  if (kpis.errorRate && Number(kpis.errorRate) > 10) list.push({ t: 'Quality Risk', m: `Error rate ${Number(kpis.errorRate).toFixed(1)}% is above target.` });
-  if (kpis.p95LatencyMs && Number(kpis.p95LatencyMs) > 5000) list.push({ t: 'Latency Risk', m: `p95 latency ${Math.round(Number(kpis.p95LatencyMs))}ms is elevated.` });
-  if (kpis.flaggedCallsCount && Number(kpis.flaggedCallsCount) > 20) list.push({ t: 'Flagged Queue', m: `${Number(kpis.flaggedCallsCount)} calls flagged in this window.` });
+  if (Number(kpis.reliability || 100) < 95) list.push({ t: 'Reliability Risk', m: `Reliability ${Number(kpis.reliability || 0).toFixed(1)}% is below target.` });
+  if (kpis.p95LatencyMs != null && Number(kpis.p95LatencyMs) > 4000) list.push({ t: 'Latency Risk', m: `p95 latency ${Math.round(Number(kpis.p95LatencyMs))}ms is elevated.` });
+  if (kpis.flaggedRate && Number(kpis.flaggedRate) > 6) list.push({ t: 'Flagged Queue', m: `${Number(kpis.flaggedRate).toFixed(1)}% calls flagged in this window.` });
   list.forEach(a => {
     const box = document.createElement('div');
     box.className = 'alert-box';
@@ -404,29 +428,29 @@ function renderAlerts(kpis) {
   });
 }
 function renderFlagged() {
-  document.getElementById('flaggedMeta').textContent = `${state.flaggedCalls.length} flagged calls in current window`;
+  document.getElementById('flaggedMeta').textContent = `${state.flaggedCalls.length} incidents in current window`;
   const root = document.getElementById('rootCause');
   root.textContent = '';
 
   if (!state.flaggedCalls.length) {
-    root.innerHTML = '<div class="placeholder">No flagged calls in this window.</div>';
+    root.innerHTML = '<div class="placeholder">No incidents in this window.</div>';
   } else {
     const topModel = topDimension(state.flaggedCalls, c => `${c.provider || 'n/a'}/${c.model || 'n/a'}`);
-    const topPrompt = topDimension(state.flaggedCalls, c => c.promptRef || 'n/a');
-    const topStatus = topDimension(state.flaggedCalls, c => c.status || 'n/a');
+    const topRoute = topDimension(state.flaggedCalls, c => c.route || 'n/a');
+    const topFlag = topFlagCode(state.flaggedCalls);
     const avgLatency = state.flaggedCalls.reduce((sum, c) => sum + Number(c.latencyMs || 0), 0) / state.flaggedCalls.length;
 
-    root.appendChild(rootItem('Total Flagged', `${state.flaggedCalls.length}`, `${state.windowDays}-day window`));
+    root.appendChild(rootItem('Total Incidents', `${state.flaggedCalls.length}`, `${state.range} window`));
+    root.appendChild(rootItem('Top Risk', topFlag.key, `${topFlag.count} hits`));
+    root.appendChild(rootItem('Top Route', topRoute.key, `${topRoute.count} calls`));
     root.appendChild(rootItem('Top Model', topModel.key, `${topModel.count} calls`));
-    root.appendChild(rootItem('Top Prompt Ref', topPrompt.key, `${topPrompt.count} calls`));
-    root.appendChild(rootItem('Top Status', topStatus.key, `${topStatus.count} calls`));
-    root.appendChild(rootItem('Avg Latency', `${Math.round(avgLatency)}ms`, 'within flagged calls'));
+    root.appendChild(rootItem('Avg Latency', `${Math.round(avgLatency)}ms`, 'incident calls'));
   }
 
   const body = document.getElementById('flaggedBody');
   body.textContent = '';
   if (!state.flaggedCalls.length) {
-    body.innerHTML = '<tr><td colspan="9">No flagged calls in this window.</td></tr>';
+    body.innerHTML = '<tr><td colspan="9">No incidents in this window.</td></tr>';
     return;
   }
 
@@ -434,14 +458,14 @@ function renderFlagged() {
     const tr = document.createElement('tr');
     if (call.id === state.selectedCallId) tr.className = 'selected-row';
 
-    tr.appendChild(td(formatDateTime(call.createdAt)));
+    tr.appendChild(td(formatDateTime(call.requestTs || call.createdAt)));
     tr.appendChild(statusTd(call.status));
+    tr.appendChild(td(call.route || 'n/a'));
     tr.appendChild(td(`${call.provider || 'n/a'} / ${call.model || 'n/a'}`));
-    tr.appendChild(td(call.promptRef || 'n/a'));
+    tr.appendChild(td(call.promptVersion || call.promptRef || 'n/a'));
     tr.appendChild(td(call.latencyMs != null ? `${call.latencyMs}ms` : 'n/a'));
-    tr.appendChild(td(formatCurrency(call.costEstimateUsd)));
-    tr.appendChild(td(String(call.flagCount || 0)));
-    tr.appendChild(reasonTd(call.flagReasonCodes, call.flagRuleVersion));
+    tr.appendChild(td(formatCurrency(call.costUsd ?? call.costEstimateUsd)));
+    tr.appendChild(reasonTd(call.flags || call.flagReasonCodes, call.flagRuleVersion));
 
     const actionTd = document.createElement('td');
     const wrap = document.createElement('div');
@@ -479,6 +503,15 @@ function topDimension(list, pick) {
   let bestCount = 0;
   m.forEach((count, key) => { if (count > bestCount) { bestKey = key; bestCount = count; } });
   return { key: bestKey, count: bestCount };
+}
+
+function topFlagCode(list) {
+  const counts = new Map();
+  list.forEach(item => (item.flags || []).forEach(flag => counts.set(flag, (counts.get(flag) || 0) + 1)));
+  let key = 'none';
+  let count = 0;
+  counts.forEach((v, k) => { if (v > count) { key = k; count = v; } });
+  return { key: normalizeReasonLabel(key), count };
 }
 
 function rootItem(label, value, sub) {
@@ -528,7 +561,9 @@ async function loadCallDetail(callId, refreshTable = true) {
     if (refreshTable) renderFlagged();
 
     if (!state.detailCache[callId]) {
-      const detailParams = new URLSearchParams({ from: state.from, to: state.to, tz: state.timezone });
+      const detailParams = new URLSearchParams({ tz: state.timezone });
+      if (state.windowMeta?.start) detailParams.set('from', state.windowMeta.start);
+      if (state.windowMeta?.end) detailParams.set('to', state.windowMeta.end);
       state.detailCache[callId] = await fetchJSON(`${API_BASE}/calls/${callId}?${detailParams.toString()}`);
     }
     renderCallDetail(state.detailCache[callId]);
@@ -543,7 +578,7 @@ function renderCallDetail(call) {
   const panel = document.getElementById('detailPanel');
   if (!call) {
     panel.className = 'placeholder';
-    panel.textContent = 'Select a flagged call to inspect details.';
+    panel.textContent = 'Select an incident to inspect details.';
     return;
   }
 
@@ -556,14 +591,21 @@ function renderCallDetail(call) {
     <div class="detail-grid">
       ${detailItem('Call ID', call.id)}
       ${detailItem('Trace ID', call.traceId)}
+      ${detailItem('Span ID', call.spanId || 'n/a')}
+      ${detailItem('Route', call.route || 'n/a')}
       ${detailItem('Status', call.status)}
+      ${detailItem('HTTP Status', call.httpStatus != null ? String(call.httpStatus) : 'n/a')}
+      ${detailItem('Error Type', call.errorType || 'n/a')}
       ${detailItem('Model', `${call.provider || 'n/a'} / ${call.model || 'n/a'}`)}
-      ${detailItem('Prompt Ref', call.promptRef || 'n/a')}
+      ${detailItem('Prompt Version', call.promptVersion || call.promptRef || 'n/a')}
       ${detailItem('Temperature', call.temperature != null ? String(call.temperature) : 'n/a')}
       ${detailItem('Latency', call.latencyMs != null ? `${call.latencyMs}ms` : 'n/a')}
       ${detailItem('Cost', formatCurrency(call.costEstimateUsd))}
       ${detailItem('Tokens', call.tokensTotal != null ? String(call.tokensTotal) : 'n/a')}
+      ${detailItem('Request TS', formatDateTime(call.requestTs))}
+      ${detailItem('Response TS', formatDateTime(call.responseTs))}
       ${detailItem('Created At', formatDateTime(call.createdAt))}
+      ${detailItem('Streaming', call.streaming ? 'true' : 'false')}
       ${detailItem('Flag Reasons', reasonText)}
       ${detailItem('Rule Version', call.flagRuleVersion || 'unknown')}
       ${detailItem('Baseline p95', baselineRef.latencyP95Ms != null ? `${Math.round(Number(baselineRef.latencyP95Ms))}ms` : 'n/a')}
@@ -638,11 +680,11 @@ function renderCompare() {
   const costDiff = Number(s.costDifference || 0);
   const latencyDiff = Number(s.latencyDifference || 0);
   const tokenDiff = Number(s.tokenDifference || 0);
-  const promptChanged = (c.callA?.promptRef || '') !== (c.callB?.promptRef || '');
+  const promptChanged = (c.callA?.promptVersion || c.callA?.promptRef || '') !== (c.callB?.promptVersion || c.callB?.promptRef || '');
 
   panel.className = '';
   panel.innerHTML = `
-    <div class="meta">A: ${escapeHtml(String(s.modelA || c.callA?.model || 'n/a'))} (${escapeHtml(c.callA?.promptRef || 'n/a')}) | B: ${escapeHtml(String(s.modelB || c.callB?.model || 'n/a'))} (${escapeHtml(c.callB?.promptRef || 'n/a')})</div>
+    <div class="meta">A: ${escapeHtml(String(s.modelA || c.callA?.model || 'n/a'))} (${escapeHtml(c.callA?.promptVersion || c.callA?.promptRef || 'n/a')}) | B: ${escapeHtml(String(s.modelB || c.callB?.model || 'n/a'))} (${escapeHtml(c.callB?.promptVersion || c.callB?.promptRef || 'n/a')})</div>
     <div class="compare-grid">
       ${compareCard('Text Similarity', `${similarity.toFixed(1)}%`)}
       ${compareCard('Model Changed', s.sameModel ? 'No' : 'Yes')}
@@ -656,27 +698,141 @@ function renderCompare() {
   `;
 }
 
+function renderBudgetGuard(budget) {
+  const panel = document.getElementById('budgetPanel');
+  if (!budget) {
+    panel.className = 'placeholder';
+    panel.textContent = 'Budget data unavailable.';
+    return;
+  }
+
+  panel.className = '';
+  const mtd = Number(budget.monthToDateCostUsd || 0);
+  const limit = budget.monthlyLimitUsd != null ? Number(budget.monthlyLimitUsd) : null;
+  const forecast = budget.forecastMonthlyUsd != null ? Number(budget.forecastMonthlyUsd) : null;
+  const exceeded = Number(budget.exceededCount || 0);
+  const overLimit = limit != null && mtd > limit;
+
+  const points = Array.isArray(budget.dailyCost) ? budget.dailyCost : [];
+  const rows = points.slice(-10).map(point => `
+    <tr>
+      <td>${escapeHtml(point.date || '--')}</td>
+      <td>${escapeHtml(formatCurrency(point.value, '$0.0000'))}</td>
+    </tr>
+  `).join('');
+
+  panel.innerHTML = `
+    ${overLimit ? `<div class="alert-box"><div class="alert-title">Budget Exceeded</div><div class="alert-msg">Month-to-date cost exceeded configured limit.</div></div>` : ''}
+    <div class="kv-list">
+      ${detailItem('Month-to-date Cost', formatCurrency(mtd, '$0.0000'))}
+      ${detailItem('Monthly Limit', limit != null ? formatCurrency(limit, '$0.0000') : 'n/a')}
+      ${detailItem('Forecast (Month)', forecast != null ? formatCurrency(forecast, '$0.0000') : 'n/a')}
+      ${detailItem('Exceeded Events', String(exceeded))}
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Daily Cost</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="2">No daily budget points in this window.</td></tr>'}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderReleaseGate(release, runs) {
+  const panel = document.getElementById('releasePanel');
+  if (!release) {
+    panel.className = 'placeholder';
+    panel.textContent = 'Release gate data unavailable.';
+    return;
+  }
+
+  panel.className = '';
+  const baseline = release.baseline || {};
+  const candidate = release.candidate || {};
+  const changed = !!release.changed;
+  const blocked = !!release.releaseBlocked;
+
+  let gateClass = 'pass';
+  let gateLabel = 'Stable';
+  if (blocked) {
+    gateClass = 'fail';
+    gateLabel = 'Release Blocked';
+  } else if (changed) {
+    gateClass = 'pending';
+    gateLabel = 'Change Detected';
+  }
+
+  const rows = (Array.isArray(runs) ? runs : []).slice(0, 8).map(run => `
+    <tr>
+      <td>${escapeHtml(formatDateTime(run.createdTs))}</td>
+      <td>${runStatusBadge(run.status)}</td>
+      <td>${escapeHtml(run.route || 'all')}</td>
+      <td>${escapeHtml(run.baselineModel || 'n/a')} -> ${escapeHtml(run.candidateModel || 'n/a')}</td>
+      <td>${escapeHtml(run.baselinePromptVersion || 'n/a')} -> ${escapeHtml(run.candidatePromptVersion || 'n/a')}</td>
+      <td>${run.releaseBlocked ? '<span class="gate-pill fail">BLOCKED</span>' : '<span class="gate-pill pass">OPEN</span>'}</td>
+    </tr>
+  `).join('');
+
+  panel.innerHTML = `
+    <div class="gate-row">
+      <span class="gate-pill ${gateClass}">${escapeHtml(gateLabel)}</span>
+      ${release.latestRunStatus ? `<span class="meta">Latest Run: ${escapeHtml(String(release.latestRunStatus))}</span>` : '<span class="meta">Latest Run: n/a</span>'}
+      ${release.pendingRunId ? `<span class="meta">Pending: ${escapeHtml(String(release.pendingRunId).slice(0, 8))}</span>` : ''}
+    </div>
+    ${blocked ? '<div class="alert-box"><div class="alert-title">Release Gate Blocked</div><div class="alert-msg">Last regression failed. Review diffs before promoting.</div></div>' : ''}
+    <div class="kv-list">
+      ${detailItem('Baseline Model', baseline.baselineModel || 'n/a')}
+      ${detailItem('Baseline Prompt', baseline.baselinePromptVersion || 'n/a')}
+      ${detailItem('Candidate Model', candidate.candidateModel || 'n/a')}
+      ${detailItem('Candidate Prompt', candidate.candidatePromptVersion || 'n/a')}
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Created</th><th>Status</th><th>Route</th><th>Model Diff</th><th>Prompt Diff</th><th>Gate</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="6">No regression runs in this window.</td></tr>'}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function runStatusBadge(status) {
+  const normalized = String(status || '').toUpperCase();
+  const klass = normalized === 'PASS' ? 'pass' : normalized === 'FAIL' || normalized === 'ERROR' ? 'fail' : 'pending';
+  return `<span class="gate-pill ${klass}">${escapeHtml(normalized || 'UNKNOWN')}</span>`;
+}
+
 function formatDateTime(v) {
   if (!v) return 'n/a';
   const d = new Date(v);
   return Number.isNaN(d.getTime()) ? String(v) : `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
 }
 
-function formatCurrency(v) {
-  return `$${Number(v || 0).toFixed(4)}`;
+function formatCurrency(v, empty = 'n/a') {
+  if (v === null || v === undefined || v === '') return empty;
+  const n = Number(v);
+  if (Number.isNaN(n)) return empty;
+  return `$${n.toFixed(4)}`;
 }
 
 function normalizeReasonLabel(code) {
   const map = {
     ERROR: 'ERROR',
-    LATENCY_P95_SPIKE: 'LATENCY SPIKE',
-    COST_SPIKE: 'COST SPIKE',
-    MODEL_CHANGED: 'MODEL CHANGED',
-    PROMPT_CHANGED: 'PROMPT CHANGED',
+    PROVIDER_ERROR: 'PROVIDER ERROR',
+    BAD_REQUEST: 'BAD REQUEST',
+    STREAM_INTERRUPTED: 'STREAM INTERRUPTED',
+    TIMEOUT: 'TIMEOUT',
+    CLIENT_ABORT: 'CLIENT ABORT',
+    CONNECTION_REFUSED: 'CONNECTION REFUSED',
     MANUAL_FLAG: 'MANUAL FLAG',
+    BUDGET_EXCEEDED: 'BUDGET EXCEEDED',
+    BUDGET_FORECAST_EXCEEDED: 'BUDGET FORECAST EXCEEDED',
+    REGRESSION_FAILED: 'REGRESSION FAILED',
+    REGRESSION_ERROR: 'REGRESSION ERROR',
+    RELEASE_BLOCKED: 'RELEASE BLOCKED',
     UNKNOWN: 'UNKNOWN'
   };
-  return map[code] || code;
+  const normalized = String(code || 'UNKNOWN').toUpperCase();
+  return map[normalized] || normalized.replaceAll('_', ' ');
 }
 
 function escapeHtml(v) {

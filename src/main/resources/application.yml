@@ -277,3 +277,25 @@ spring.application.name: ${SPRING_APPLICATION_NAME:mcp-gateway}
 
 # Propagation settings
 management.tracing.propagation.type: B3  # Zipkin B3 propagation format 
+
+ailuros:
+  observability:
+    enabled: ${AILUROS_ENABLED:true}
+    ingest-url: ${AILUROS_INGEST_URL:http://localhost:8080/api/ailuros/ingest}
+    sample-rate: ${AILUROS_SAMPLE_RATE:1.0}
+    max-queue: ${AILUROS_MAX_QUEUE:5000}
+    emit-timeout-ms: ${AILUROS_EMIT_TIMEOUT_MS:300}
+  budget:
+    enabled: ${AILUROS_BUDGET_ENABLED:true}
+    eval-cron: ${AILUROS_BUDGET_EVAL_CRON:0 0 * * * *}
+    forecast-days: ${AILUROS_BUDGET_FORECAST_DAYS:7}
+  webhook:
+    enabled: ${AILUROS_WEBHOOK_ENABLED:false}
+    url: ${AILUROS_WEBHOOK_URL:}
+  regression:
+    enabled: ${AILUROS_REGRESSION_ENABLED:true}
+    detect-cron: ${AILUROS_RELEASE_DETECT_CRON:0 15 * * * *}
+    max-cases: ${AILUROS_REGRESSION_MAX_CASES:30}
+    judge-enabled: ${AILUROS_REGRESSION_JUDGE_ENABLED:false}
+    timeout-ms: ${AILUROS_REGRESSION_TIMEOUT_MS:30000}
+    detector-window-hours: ${AILUROS_REGRESSION_DETECTOR_WINDOW_HOURS:24}

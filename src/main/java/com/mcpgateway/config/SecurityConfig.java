@@ -55,7 +55,9 @@ public class SecurityConfig {
                     "/error"
                 ).permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/ailuros/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/ailuros/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/ailuros/demo/generate").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/ailuros/ingest").permitAll()
                 .requestMatchers(
                     "/health/**",
                     "/api-docs/**",
@@ -83,11 +85,20 @@ public class SecurityConfig {
             "Authorization",
             "Content-Type",
             "X-API-KEY",
+            "X-Ailuros-App",
+            "X-Ailuros-Env",
+            "X-Ailuros-Route",
+            "X-Ailuros-Prompt-Version",
+            "X-Ailuros-Release-Candidate",
+            "X-Ailuros-User-Tier",
+            "X-Ailuros-Request-Id",
+            "X-Ailuros-Trace-Id",
+            "X-Trace-Id",
             "Access-Control-Allow-Origin",
             "Access-Control-Allow-Methods",
             "Access-Control-Allow-Headers"
         ));
-        configuration.setExposedHeaders(List.of("Authorization", "X-API-KEY"));
+        configuration.setExposedHeaders(List.of("Authorization", "X-API-KEY", "X-Ailuros-Trace-Id", "X-Trace-Id"));
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

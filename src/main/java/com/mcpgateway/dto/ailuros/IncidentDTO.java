@@ -7,41 +7,38 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * DTO for call list view
- * Optimized for table display - excludes full request/response text
- */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CallListDTO {
+public class IncidentDTO {
     private UUID id;
     private String traceId;
     private String spanId;
-    private String projectKey;
+
     private String appId;
     private String env;
     private String route;
+    private String provider;
+    private String model;
+    private String promptVersion;
+
+    private Boolean streaming;
+
     private String status;
     private String errorType;
     private Integer httpStatus;
-    private String provider;
-    private String model;
-    private String promptRef;
-    private String promptVersion;
-    private Boolean streaming;
-    private Integer tokensTotal;
-    private BigDecimal costEstimateUsd;
+
     private Integer latencyMs;
+    private BigDecimal costUsd;
+
     private Instant requestTs;
     private Instant responseTs;
-    private Instant createdAt;
-    private Boolean isFlagged;
-    private Long flagCount;
-    private List<String> flagReasonCodes;
-    private String flagRuleVersion;
+
+    @Builder.Default
+    private List<String> flags = new ArrayList<>();
 }

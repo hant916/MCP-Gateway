@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Collection;
 import java.util.UUID;
 
 /**
@@ -31,6 +32,11 @@ public interface AcCallFlagRepository extends JpaRepository<AcCallFlag, UUID> {
      * Find flags by creator
      */
     List<AcCallFlag> findByCreatedByOrderByCreatedAtDesc(String createdBy);
+
+    /**
+     * Bulk fetch flags for incidents aggregation.
+     */
+    List<AcCallFlag> findByCallIdInOrderByCreatedAtDesc(Collection<UUID> callIds);
 
     /**
      * Count flags for a call
