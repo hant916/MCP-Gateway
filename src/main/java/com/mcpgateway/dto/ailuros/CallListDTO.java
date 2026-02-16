@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -32,4 +33,6 @@ public class CallListDTO {
     private Instant createdAt;
     private Boolean isFlagged;
     private Long flagCount;
+    private List<String> flagReasonCodes;
+    private String flagRuleVersion;
 }

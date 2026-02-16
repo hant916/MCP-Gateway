@@ -61,7 +61,7 @@ class PaymentEventListenerTest {
 
         doNothing().when(webhookService).sendWebhook(any(UUID.class), anyString(), anyMap());
         doNothing().when(auditLogService).logPaymentOperation(
-                any(UUID.class), anyString(), anyString(), anyString(), any(AuditLog.Status.class), anyMap()
+                any(UUID.class), anyString(), anyString(), any(AuditLog.Status.class), anyMap()
         );
 
         // When
@@ -103,7 +103,7 @@ class PaymentEventListenerTest {
                 .when(webhookService).sendWebhook(any(UUID.class), anyString(), anyMap());
 
         doNothing().when(auditLogService).logPaymentOperation(
-                any(UUID.class), anyString(), anyString(), anyString(), any(AuditLog.Status.class), anyMap()
+                any(UUID.class), anyString(), anyString(), any(AuditLog.Status.class), anyMap()
         );
 
         // When
@@ -115,7 +115,7 @@ class PaymentEventListenerTest {
 
         // Audit log still created (error handling in listener)
         verify(auditLogService, timeout(1000)).logPaymentOperation(
-                any(UUID.class), anyString(), anyString(), anyString(), any(AuditLog.Status.class), anyMap()
+                any(UUID.class), anyString(), anyString(), any(AuditLog.Status.class), anyMap()
         );
     }
 
@@ -129,7 +129,7 @@ class PaymentEventListenerTest {
         // Audit log throws exception
         doThrow(new RuntimeException("Database unavailable"))
                 .when(auditLogService).logPaymentOperation(
-                any(UUID.class), anyString(), anyString(), anyString(), any(AuditLog.Status.class), anyMap()
+                any(UUID.class), anyString(), anyString(), any(AuditLog.Status.class), anyMap()
         );
 
         // When
@@ -141,7 +141,7 @@ class PaymentEventListenerTest {
 
         // Audit log was attempted
         verify(auditLogService, timeout(1000)).logPaymentOperation(
-                any(), anyString(), anyString(), anyString(), any(), anyMap()
+                any(UUID.class), anyString(), anyString(), any(AuditLog.Status.class), anyMap()
         );
 
         // No exception propagated (listener catches it)
@@ -203,7 +203,7 @@ class PaymentEventListenerTest {
         // Both events processed
         verify(webhookService, timeout(1000).times(2)).sendWebhook(any(), eq("payment.created"), anyMap());
         verify(auditLogService, timeout(1000).times(2)).logPaymentOperation(
-                any(), eq("PAYMENT_CREATED"), anyString(), any(), anyMap()
+                any(UUID.class), eq("PAYMENT_CREATED"), anyString(), any(AuditLog.Status.class), anyMap()
         );
     }
 }

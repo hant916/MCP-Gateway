@@ -11,6 +11,7 @@ import com.mcpgateway.repository.PaymentRepository;
 import com.mcpgateway.repository.ToolSubscriptionRepository;
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
+import com.stripe.param.PaymentIntentCreateParams;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -105,7 +106,7 @@ class PaymentServiceTest {
 
         // Act & Assert with mocked static
         try (MockedStatic<PaymentIntent> mockedStatic = mockStatic(PaymentIntent.class)) {
-            mockedStatic.when(() -> PaymentIntent.create(any()))
+            mockedStatic.when(() -> PaymentIntent.create(any(PaymentIntentCreateParams.class)))
                     .thenReturn(mockPaymentIntent);
 
             PaymentIntentResponse result = paymentService.createPaymentIntent(userId, request);
@@ -138,7 +139,7 @@ class PaymentServiceTest {
 
         // Act & Assert
         try (MockedStatic<PaymentIntent> mockedStatic = mockStatic(PaymentIntent.class)) {
-            mockedStatic.when(() -> PaymentIntent.create(any()))
+            mockedStatic.when(() -> PaymentIntent.create(any(PaymentIntentCreateParams.class)))
                     .thenReturn(mockPaymentIntent);
 
             PaymentIntentResponse result = paymentService.createPaymentIntent(userId, request);

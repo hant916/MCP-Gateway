@@ -70,11 +70,15 @@ public interface AcCallRepository extends JpaRepository<AcCall, UUID>, JpaSpecif
     /**
      * Calculate daily cost aggregates
      */
-    @Query("SELECT DATE(c.createdAt), COALESCE(SUM(c.costEstimateUsd), 0) FROM AcCall c " +
+    @Query("SELECT CAST(c.createdAt AS date), " +
+           "COALESCE(SUM(c.costEstimateUsd), 0), " +
+           "COUNT(c), " +
+           "SUM(CASE WHEN c.status = 'error' THEN 1 ELSE 0 END) " +
+           "FROM AcCall c " +
            "WHERE c.projectKey = :projectKey " +
            "AND c.createdAt BETWEEN :from AND :to " +
-           "GROUP BY DATE(c.createdAt) " +
-           "ORDER BY DATE(c.createdAt)")
+           "GROUP BY CAST(c.createdAt AS date) " +
+           "ORDER BY CAST(c.createdAt AS date)")
     List<Object[]> calculateDailyCost(
         @Param("projectKey") String projectKey,
         @Param("from") Instant from,
@@ -104,14 +108,42 @@ public interface AcCallRepository extends JpaRepository<AcCall, UUID>, JpaSpecif
         @Param("to") Instant to);
 
     /**
-     * Calculate p95 latency
+     * Get latency values (sorted ascending) for percentile calculations
      */
-    @Query(value = "SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY latency_ms) " +
-                   "FROM ac_call " +
-                   "WHERE project_key = :projectKey " +
-                   "AND created_at BETWEEN :from AND :to",
-           nativeQuery = true)
-    Double calculateP95Latency(
+    @Query("SELECT c.latencyMs FROM AcCall c " +
+           "WHERE c.projectKey = :projectKey " +
+           "AND c.createdAt BETWEEN :from AND :to " +
+           "AND c.status = 'ok' " +
+           "AND c.latencyMs IS NOT NULL " +
+           "ORDER BY c.latencyMs ASC")
+    List<Integer> findLatencyValues(
+        @Param("projectKey") String projectKey,
+        @Param("from") Instant from,
+        @Param("to") Instant to);
+
+    /**
+     * Count calls by model in a window (descending).
+     */
+    @Query("SELECT c.model, COUNT(c) FROM AcCall c " +
+           "WHERE c.projectKey = :projectKey " +
+           "AND c.createdAt BETWEEN :from AND :to " +
+           "GROUP BY c.model " +
+           "ORDER BY COUNT(c) DESC")
+    List<Object[]> countByModelInWindow(
+        @Param("projectKey") String projectKey,
+        @Param("from") Instant from,
+        @Param("to") Instant to);
+
+    /**
+     * Count calls by prompt ref in a window (descending).
+     */
+    @Query("SELECT c.promptRef, COUNT(c) FROM AcCall c " +
+           "WHERE c.projectKey = :projectKey " +
+           "AND c.createdAt BETWEEN :from AND :to " +
+           "AND c.promptRef IS NOT NULL " +
+           "GROUP BY c.promptRef " +
+           "ORDER BY COUNT(c) DESC")
+    List<Object[]> countByPromptRefInWindow(
         @Param("projectKey") String projectKey,
         @Param("from") Instant from,
         @Param("to") Instant to);
@@ -119,10 +151,15 @@ public interface AcCallRepository extends JpaRepository<AcCall, UUID>, JpaSpecif
     /**
      * Find flagged calls
      */
-    @Query("SELECT c FROM AcCall c JOIN AcCallFlag f ON c.id = f.call.id " +
+    @Query("SELECT DISTINCT c FROM AcCall c JOIN AcCallFlag f ON c.id = f.call.id " +
            "WHERE c.projectKey = :projectKey " +
-           "ORDER BY f.createdAt DESC")
-    Page<AcCall> findFlaggedCalls(@Param("projectKey") String projectKey, Pageable pageable);
+           "AND c.createdAt BETWEEN :from AND :to " +
+           "ORDER BY c.createdAt DESC")
+    Page<AcCall> findFlaggedCalls(
+        @Param("projectKey") String projectKey,
+        @Param("from") Instant from,
+        @Param("to") Instant to,
+        Pageable pageable);
 
     /**
      * Count flagged calls

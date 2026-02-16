@@ -317,7 +317,7 @@ class WebSocketSessionManagementTest {
     }
 
     @Test
-    void testRemoveWebSocketSession_ManualRemoval() {
+    void testRemoveWebSocketSession_ManualRemoval() throws Exception {
         // Arrange
         webSocketTransport.initialize(testSession);
         webSocketTransport.registerWebSocketSession(testSession.getSessionToken(), mockWebSocketSession);

@@ -96,7 +96,7 @@ public class AuditLogAspect {
         }
 
         Object result = null;
-        com.mcpgateway.domain.AuditLog.Status status;
+        com.mcpgateway.domain.AuditLog.Status status = com.mcpgateway.domain.AuditLog.Status.SUCCESS;
         String errorMessage = null;
 
         try {
@@ -133,7 +133,7 @@ public class AuditLogAspect {
                 }
             }
 
-        } catch (Exception e) {
+        } catch (Throwable e) {
             status = com.mcpgateway.domain.AuditLog.Status.FAILURE;
             errorMessage = e.getMessage();
             throw e;

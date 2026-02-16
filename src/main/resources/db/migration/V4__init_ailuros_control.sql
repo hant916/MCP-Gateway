@@ -4,13 +4,13 @@
 -- Prompt Template Management
 -- Stores versioned prompt templates for traceability
 CREATE TABLE ac_prompt_template (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY,
     project_key VARCHAR(64) NOT NULL,
     name VARCHAR(128) NOT NULL,
     version INT NOT NULL,
     content TEXT NOT NULL,
     content_sha256 CHAR(64) NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_prompt_template_version UNIQUE (project_key, name, version)
 );
 
@@ -20,7 +20,7 @@ CREATE INDEX idx_prompt_template_project ON ac_prompt_template(project_key, crea
 -- LLM Call Tracking
 -- Central audit log for all LLM API calls with full request/response capture
 CREATE TABLE ac_call (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY,
     trace_id VARCHAR(64) NOT NULL UNIQUE,
     project_key VARCHAR(64) NOT NULL,
     env VARCHAR(16) NOT NULL DEFAULT 'prod',
@@ -41,7 +41,7 @@ CREATE TABLE ac_call (
     cost_estimate_usd NUMERIC(12,6),
     latency_ms INT,
     upstream_request_id VARCHAR(128),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_call_prompt_template FOREIGN KEY (prompt_template_id)
         REFERENCES ac_prompt_template(id) ON DELETE SET NULL
 );
@@ -58,12 +58,12 @@ CREATE INDEX idx_call_provider ON ac_call(provider, created_at DESC);
 -- Call Flagging & Review
 -- Allows marking calls for human review (wrong output, risky content, etc.)
 CREATE TABLE ac_call_flag (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY,
     call_id UUID NOT NULL,
     flag_type VARCHAR(32) NOT NULL,
     note TEXT,
     created_by VARCHAR(64),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_flag_call FOREIGN KEY (call_id)
         REFERENCES ac_call(id) ON DELETE CASCADE
 );

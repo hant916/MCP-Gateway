@@ -80,6 +80,21 @@ public class AuditLogService {
     }
 
     /**
+     * Backward-compatible alias for legacy callers/tests.
+     */
+    public void log(
+            UUID userId,
+            String username,
+            String action,
+            String resourceType,
+            String resourceId,
+            AuditLog.Status status,
+            Map<String, Object> metadata
+    ) {
+        logAsync(userId, username, action, resourceType, resourceId, status, metadata);
+    }
+
+    /**
      * Log with full HTTP context
      */
     @Async
@@ -144,6 +159,19 @@ public class AuditLogService {
         metadata.put("currency", currency);
 
         logAsync(userId, username, action, "Payment", paymentId, status, metadata);
+    }
+
+    /**
+     * Backward-compatible overload for listeners/tests providing metadata directly.
+     */
+    public void logPaymentOperation(
+            UUID userId,
+            String action,
+            String paymentId,
+            AuditLog.Status status,
+            Map<String, Object> metadata
+    ) {
+        logAsync(userId, null, action, "Payment", paymentId, status, metadata);
     }
 
     /**

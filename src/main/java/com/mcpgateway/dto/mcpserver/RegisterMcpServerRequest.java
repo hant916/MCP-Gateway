@@ -6,6 +6,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Data
@@ -31,6 +33,25 @@ public class RegisterMcpServerRequest {
 
         @NotNull(message = "Transport configuration is required")
         private TransportEndpoints config;
+
+        public void setType(McpServer.TransportType type) {
+            this.type = type;
+        }
+
+        public void setType(String type) {
+            if (type == null || type.isBlank()) {
+                this.type = null;
+                return;
+            }
+            String normalized = type.trim().toUpperCase().replace('-', '_');
+            this.type = McpServer.TransportType.valueOf(normalized);
+        }
+
+        /**
+         * Backward-compatible alias for older tests/code.
+         */
+        public static class Config extends TransportEndpoints {
+        }
     }
 
     @Data
@@ -42,6 +63,19 @@ public class RegisterMcpServerRequest {
         
         private McpServer.SessionIdLocationType sessionIdLocation;
         private String sessionIdParamName;
+
+        public void setSessionIdLocation(McpServer.SessionIdLocationType sessionIdLocation) {
+            this.sessionIdLocation = sessionIdLocation;
+        }
+
+        public void setSessionIdLocation(String sessionIdLocation) {
+            if (sessionIdLocation == null || sessionIdLocation.isBlank()) {
+                this.sessionIdLocation = null;
+                return;
+            }
+            String normalized = sessionIdLocation.trim().toUpperCase().replace('-', '_');
+            this.sessionIdLocation = McpServer.SessionIdLocationType.valueOf(normalized);
+        }
     }
 
     @Data
@@ -50,6 +84,19 @@ public class RegisterMcpServerRequest {
         private McpServer.AuthType type;
         
         private OAuth2Config config;
+
+        public void setType(McpServer.AuthType type) {
+            this.type = type;
+        }
+
+        public void setType(String type) {
+            if (type == null || type.isBlank()) {
+                this.type = null;
+                return;
+            }
+            String normalized = type.trim().toUpperCase().replace('-', '_');
+            this.type = McpServer.AuthType.valueOf(normalized);
+        }
     }
 
     @Data
@@ -59,5 +106,27 @@ public class RegisterMcpServerRequest {
         private String authorizationUrl;
         private String tokenUrl;
         private Set<String> scopes;
+
+        public void setScopes(Set<String> scopes) {
+            this.scopes = scopes;
+        }
+
+        public void setScopes(String scopes) {
+            if (scopes == null || scopes.isBlank()) {
+                this.scopes = null;
+                return;
+            }
+            this.scopes = new LinkedHashSet<>(
+                Arrays.asList(scopes.trim().split("[,\\s]+"))
+            );
+        }
+    }
+
+    /**
+     * Backward-compatible alias for older tests/code.
+     */
+    public static class AuthenticationConfig extends AuthConfig {
+        public static class Config extends OAuth2Config {
+        }
     }
 } 

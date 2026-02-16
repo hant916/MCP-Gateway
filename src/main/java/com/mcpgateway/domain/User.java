@@ -32,6 +32,25 @@ public class User implements UserDetails {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(name = "full_name", length = 100)
+    private String fullName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false)
+    private UserRole role = UserRole.USER;
+
+    @Column(name = "subscription_tier")
+    private String subscriptionTierName;
+
+    @Column(name = "is_active")
+    private Boolean isActive = true;
+
+    @Column(name = "email_verified")
+    private Boolean emailVerified = false;
+
+    @Column(name = "last_login_at")
+    private Timestamp lastLoginAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Timestamp createdAt;
 
@@ -73,6 +92,47 @@ public class User implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true;
+    }
+
+    public enum UserRole {
+        USER, ADMIN, BUILDER, MODERATOR
+    }
+
+    /**
+     * Backward-compatible alias used by older tests/code.
+     */
+    public enum Role {
+        USER, ADMIN, BUILDER, MODERATOR
+    }
+
+    public enum SubscriptionTier {
+        FREE,
+        BASIC,
+        PRO,
+        ENTERPRISE
+    }
+
+    public SubscriptionTier getSubscriptionTier() {
+        if (subscriptionTierName == null || subscriptionTierName.isBlank()) {
+            return null;
+        }
+        try {
+            return SubscriptionTier.valueOf(subscriptionTierName.toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    public void setSubscriptionTier(SubscriptionTier subscriptionTier) {
+        this.subscriptionTierName = subscriptionTier != null ? subscriptionTier.name() : null;
+    }
+
+    public void setRole(UserRole role) {
+        this.role = role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role != null ? UserRole.valueOf(role.name()) : null;
     }
 
     @Override

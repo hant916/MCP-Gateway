@@ -14,9 +14,15 @@ import java.util.UUID;
 
 @Repository
 public interface ToolUsageRecordRepository extends JpaRepository<ToolUsageRecord, UUID> {
+    @Query("SELECT r FROM ToolUsageRecord r " +
+           "WHERE r.subscription.client.id = :clientId " +
+           "AND r.usageTime BETWEEN :startDate AND :endDate")
     List<ToolUsageRecord> findBySubscriptionClientIdAndUsageTimeBetween(
+            @Param("clientId")
             UUID clientId,
+            @Param("startDate")
             LocalDateTime startDate,
+            @Param("endDate")
             LocalDateTime endDate
     );
 
@@ -25,13 +31,15 @@ public interface ToolUsageRecordRepository extends JpaRepository<ToolUsageRecord
     /**
      * Count total requests in date range
      */
+    @Query("SELECT COUNT(r) FROM ToolUsageRecord r " +
+           "WHERE r.usageTime BETWEEN :start AND :end")
     Long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 
     /**
      * Count distinct users in date range
      */
-    @Query("SELECT COUNT(DISTINCT r.subscription.clientId) FROM ToolUsageRecord r " +
-           "WHERE r.createdAt BETWEEN :start AND :end")
+    @Query("SELECT COUNT(DISTINCT r.subscription.client.id) FROM ToolUsageRecord r " +
+           "WHERE r.usageTime BETWEEN :start AND :end")
     Long countDistinctUsersByCreatedAtBetween(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end
@@ -40,10 +48,10 @@ public interface ToolUsageRecordRepository extends JpaRepository<ToolUsageRecord
     /**
      * Get request trend by date
      */
-    @Query("SELECT CAST(r.createdAt AS date) as date, COUNT(r) as count " +
+    @Query("SELECT CAST(r.usageTime AS date) as date, COUNT(r) as count " +
            "FROM ToolUsageRecord r " +
-           "WHERE r.createdAt BETWEEN :start AND :end " +
-           "GROUP BY CAST(r.createdAt AS date) " +
+           "WHERE r.usageTime BETWEEN :start AND :end " +
+           "GROUP BY CAST(r.usageTime AS date) " +
            "ORDER BY date")
     List<Object[]> getRequestTrendByDateRange(
             @Param("start") LocalDateTime start,
@@ -53,10 +61,10 @@ public interface ToolUsageRecordRepository extends JpaRepository<ToolUsageRecord
     /**
      * Get active user trend by date
      */
-    @Query("SELECT CAST(r.createdAt AS date) as date, COUNT(DISTINCT r.subscription.clientId) as count " +
+    @Query("SELECT CAST(r.usageTime AS date) as date, COUNT(DISTINCT r.subscription.client.id) as count " +
            "FROM ToolUsageRecord r " +
-           "WHERE r.createdAt BETWEEN :start AND :end " +
-           "GROUP BY CAST(r.createdAt AS date) " +
+           "WHERE r.usageTime BETWEEN :start AND :end " +
+           "GROUP BY CAST(r.usageTime AS date) " +
            "ORDER BY date")
     List<Object[]> getActiveUserTrendByDateRange(
             @Param("start") LocalDateTime start,
@@ -67,9 +75,9 @@ public interface ToolUsageRecordRepository extends JpaRepository<ToolUsageRecord
      * Get top tools by usage
      */
     @Query("SELECT r.subscription.tool.id, r.subscription.tool.name, " +
-           "COUNT(r) as requestCount, COUNT(DISTINCT r.subscription.clientId) as uniqueUsers " +
+           "COUNT(r) as requestCount, COUNT(DISTINCT r.subscription.client.id) as uniqueUsers " +
            "FROM ToolUsageRecord r " +
-           "WHERE r.createdAt BETWEEN :start AND :end " +
+           "WHERE r.usageTime BETWEEN :start AND :end " +
            "GROUP BY r.subscription.tool.id, r.subscription.tool.name " +
            "ORDER BY requestCount DESC")
     List<Object[]> getTopToolsByUsage(
@@ -81,10 +89,9 @@ public interface ToolUsageRecordRepository extends JpaRepository<ToolUsageRecord
     /**
      * Get usage by transport type
      */
-    @Query("SELECT r.session.transport, COUNT(r) as count " +
+    @Query("SELECT 'UNKNOWN', COUNT(r) as count " +
            "FROM ToolUsageRecord r " +
-           "WHERE r.createdAt BETWEEN :start AND :end AND r.session IS NOT NULL " +
-           "GROUP BY r.session.transport")
+           "WHERE r.usageTime BETWEEN :start AND :end")
     List<Object[]> getUsageByTransportType(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end
@@ -93,10 +100,10 @@ public interface ToolUsageRecordRepository extends JpaRepository<ToolUsageRecord
     /**
      * Get usage by hour of day
      */
-    @Query("SELECT HOUR(r.createdAt) as hour, COUNT(r) as count " +
+    @Query("SELECT HOUR(r.usageTime) as hour, COUNT(r) as count " +
            "FROM ToolUsageRecord r " +
-           "WHERE r.createdAt BETWEEN :start AND :end " +
-           "GROUP BY HOUR(r.createdAt) " +
+           "WHERE r.usageTime BETWEEN :start AND :end " +
+           "GROUP BY HOUR(r.usageTime) " +
            "ORDER BY hour")
     List<Object[]> getUsageByHour(
             @Param("start") LocalDateTime start,
@@ -106,8 +113,8 @@ public interface ToolUsageRecordRepository extends JpaRepository<ToolUsageRecord
     /**
      * Get average response time
      */
-    @Query("SELECT AVG(r.responseTime) FROM ToolUsageRecord r " +
-           "WHERE r.createdAt BETWEEN :start AND :end AND r.responseTime IS NOT NULL")
+    @Query("SELECT COALESCE(AVG(0.0), 0.0) FROM ToolUsageRecord r " +
+           "WHERE r.usageTime BETWEEN :start AND :end")
     Double getAverageResponseTime(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end
@@ -117,7 +124,7 @@ public interface ToolUsageRecordRepository extends JpaRepository<ToolUsageRecord
      * Get total revenue
      */
     @Query("SELECT SUM(r.cost) FROM ToolUsageRecord r " +
-           "WHERE r.createdAt BETWEEN :start AND :end")
+           "WHERE r.usageTime BETWEEN :start AND :end")
     BigDecimal getTotalRevenue(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end
@@ -126,10 +133,10 @@ public interface ToolUsageRecordRepository extends JpaRepository<ToolUsageRecord
     /**
      * Get revenue trend by date
      */
-    @Query("SELECT CAST(r.createdAt AS date) as date, SUM(r.cost) as revenue " +
+    @Query("SELECT CAST(r.usageTime AS date) as date, SUM(r.cost) as revenue " +
            "FROM ToolUsageRecord r " +
-           "WHERE r.createdAt BETWEEN :start AND :end " +
-           "GROUP BY CAST(r.createdAt AS date) " +
+           "WHERE r.usageTime BETWEEN :start AND :end " +
+           "GROUP BY CAST(r.usageTime AS date) " +
            "ORDER BY date")
     List<Object[]> getRevenueTrendByDateRange(
             @Param("start") LocalDateTime start,
@@ -139,10 +146,10 @@ public interface ToolUsageRecordRepository extends JpaRepository<ToolUsageRecord
     /**
      * Get revenue by subscription tier
      */
-    @Query("SELECT r.subscription.subscriptionTier, SUM(r.cost) as revenue " +
+    @Query("SELECT COALESCE(r.subscription.client.subscriptionTierName, 'UNKNOWN'), SUM(r.cost) as revenue " +
            "FROM ToolUsageRecord r " +
-           "WHERE r.createdAt BETWEEN :start AND :end " +
-           "GROUP BY r.subscription.subscriptionTier")
+           "WHERE r.usageTime BETWEEN :start AND :end " +
+           "GROUP BY COALESCE(r.subscription.client.subscriptionTierName, 'UNKNOWN')")
     List<Object[]> getRevenueBySubscriptionTier(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end
@@ -152,9 +159,9 @@ public interface ToolUsageRecordRepository extends JpaRepository<ToolUsageRecord
      * Get top tools by revenue
      */
     @Query("SELECT r.subscription.tool.id, r.subscription.tool.name, " +
-           "SUM(r.cost) as revenue, COUNT(DISTINCT r.subscription.id) as subscribers " +
+           "SUM(r.cost) as revenue, COUNT(DISTINCT r.subscription.client.id) as subscribers " +
            "FROM ToolUsageRecord r " +
-           "WHERE r.createdAt BETWEEN :start AND :end " +
+           "WHERE r.usageTime BETWEEN :start AND :end " +
            "GROUP BY r.subscription.tool.id, r.subscription.tool.name " +
            "ORDER BY revenue DESC")
     List<Object[]> getTopToolsByRevenue(

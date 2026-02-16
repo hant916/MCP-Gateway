@@ -49,6 +49,22 @@ public class UsageBillingService {
     }
 
     /**
+     * Backward-compatible async overload used by older callers/tests.
+     */
+    @Async
+    public void recordUsageAsync(UUID sessionId, String apiEndpoint, String httpMethod,
+                                 Integer statusCode, Long timestamp, Long requestSize,
+                                 Long responseSize, Integer processingMs) {
+        try {
+            recordUsage(sessionId, apiEndpoint, httpMethod, statusCode, null,
+                requestSize, responseSize, processingMs, null, null);
+        } catch (Exception e) {
+            log.error("Failed to record usage asynchronously for session: {}, endpoint: {}",
+                sessionId, apiEndpoint, e);
+        }
+    }
+
+    /**
      * 记录使用量 - 完整版本
      */
     @Transactional
@@ -106,6 +122,17 @@ public class UsageBillingService {
             sessionId, session.getUser().getId(), apiEndpoint, cost, statusCode);
 
         return savedRecord;
+    }
+
+    /**
+     * Backward-compatible overload used by older callers/tests.
+     */
+    @Transactional
+    public UsageRecord recordUsage(UUID sessionId, String apiEndpoint, String httpMethod,
+                                   Integer statusCode, Long timestamp, Long requestSize,
+                                   Long responseSize, Integer processingMs) {
+        return recordUsage(sessionId, apiEndpoint, httpMethod, statusCode, null,
+            requestSize, responseSize, processingMs, null, null);
     }
 
     /**

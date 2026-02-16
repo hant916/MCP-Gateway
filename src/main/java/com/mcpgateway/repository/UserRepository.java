@@ -39,8 +39,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     /**
      * Get users grouped by subscription tier
      */
-    @Query("SELECT u.subscriptionTier, COUNT(u) as count " +
+    @Query("SELECT u.subscriptionTierName, COUNT(u) as count " +
            "FROM User u " +
-           "GROUP BY u.subscriptionTier")
+           "GROUP BY u.subscriptionTierName")
     List<Object[]> getUsersBySubscriptionTier();
-} 
+}

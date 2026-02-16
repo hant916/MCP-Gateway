@@ -111,4 +111,39 @@ public class McpServer {
     protected void onUpdate() {
         updatedAt = new Timestamp(System.currentTimeMillis());
     }
+
+    /**
+     * Get the base URL for this MCP server
+     * @return the service endpoint URL
+     */
+    public String getBaseUrl() {
+        return this.serviceEndpoint;
+    }
+
+    /**
+     * Backward-compatible setter for older code/tests using baseUrl naming.
+     */
+    public void setBaseUrl(String baseUrl) {
+        this.serviceEndpoint = baseUrl;
+    }
+
+    /**
+     * Backward-compatible setter for String-based transport values.
+     */
+    public void setTransportType(TransportType transportType) {
+        this.transportType = transportType;
+    }
+
+    /**
+     * Backward-compatible setter for String-based transport values.
+     */
+    public void setTransportType(String transportType) {
+        if (transportType == null || transportType.isBlank()) {
+            this.transportType = null;
+            return;
+        }
+
+        String normalized = transportType.trim().toUpperCase().replace('-', '_');
+        this.transportType = TransportType.valueOf(normalized);
+    }
 } 

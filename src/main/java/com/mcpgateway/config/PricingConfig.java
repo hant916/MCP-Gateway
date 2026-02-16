@@ -20,8 +20,8 @@ public class PricingConfig {
     ) {
         Map<McpTool.PricingModel, PricingStrategy> strategies = new HashMap<>();
         strategies.put(McpTool.PricingModel.MONTHLY, monthlyStrategy);
-        strategies.put(McpTool.PricingModel.PAY_PER_USE, payPerUseStrategy);
-        strategies.put(McpTool.PricingModel.FREE, usage -> java.math.BigDecimal.ZERO);
+        strategies.put(McpTool.PricingModel.PAY_AS_YOU_GO, payPerUseStrategy);
+        strategies.put(McpTool.PricingModel.FREE_TIER, usage -> java.math.BigDecimal.ZERO);
         return strategies;
     }
 } 

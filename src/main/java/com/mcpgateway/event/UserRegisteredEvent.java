@@ -20,15 +20,25 @@ public class UserRegisteredEvent extends DomainEvent {
     private final UUID userId;
     private final String username;
     private final String email;
-    // Note: User.UserRole field commented out - not yet implemented in User entity
-    // private final User.UserRole role;
+    private final User.UserRole role;
+    private final String registrationMethod;
 
     public UserRegisteredEvent(User user) {
         super();
         this.userId = user.getId();
         this.username = user.getUsername();
         this.email = user.getEmail();
-        // this.role = user.getRole();
+        this.role = user.getRole();
+        this.registrationMethod = "standard";
+    }
+
+    public UserRegisteredEvent(User user, String registrationMethod) {
+        super();
+        this.userId = user.getId();
+        this.username = user.getUsername();
+        this.email = user.getEmail();
+        this.role = user.getRole();
+        this.registrationMethod = registrationMethod;
     }
 
     @Override

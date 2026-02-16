@@ -41,6 +41,9 @@ public class UsageStatsDTO {
     // Usage by hour (for heat map)
     private Map<Integer, Long> usageByHour;
 
+    // Performance stats
+    private Double averageResponseTime;
+
     @Data
     @Builder
     @NoArgsConstructor

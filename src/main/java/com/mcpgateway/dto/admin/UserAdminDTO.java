@@ -24,6 +24,7 @@ public class UserAdminDTO {
     private String email;
     // Note: User entity doesn't have these fields yet - placeholders for future implementation
     private String fullName;
+    private User.SubscriptionTier subscriptionTier;
     private String subscriptionTierName; // Simplified from nested class reference
     private Boolean isActive;
     private Boolean emailVerified;
@@ -71,5 +72,37 @@ public class UserAdminDTO {
         dto.setTotalRequests(totalRequests);
         dto.setTotalSpent(totalSpent);
         return dto;
+    }
+
+    public User.SubscriptionTier getSubscriptionTier() {
+        if (subscriptionTier != null) {
+            return subscriptionTier;
+        }
+        if (subscriptionTierName == null || subscriptionTierName.isBlank()) {
+            return null;
+        }
+        try {
+            return User.SubscriptionTier.valueOf(subscriptionTierName.toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    public void setSubscriptionTier(User.SubscriptionTier subscriptionTier) {
+        this.subscriptionTier = subscriptionTier;
+        this.subscriptionTierName = subscriptionTier != null ? subscriptionTier.name() : null;
+    }
+
+    public void setSubscriptionTierName(String subscriptionTierName) {
+        this.subscriptionTierName = subscriptionTierName;
+        if (subscriptionTierName == null || subscriptionTierName.isBlank()) {
+            this.subscriptionTier = null;
+            return;
+        }
+        try {
+            this.subscriptionTier = User.SubscriptionTier.valueOf(subscriptionTierName.toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            this.subscriptionTier = null;
+        }
     }
 }

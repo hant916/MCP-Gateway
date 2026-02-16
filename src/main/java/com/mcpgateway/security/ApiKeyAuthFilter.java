@@ -77,7 +77,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
     private boolean isPublicEndpoint(HttpServletRequest request) {
         String path = request.getRequestURI();
         String method = request.getMethod();
-        
+
         log.debug("Checking if endpoint is public in API Key filter: {} {}", method, path);
 
         // Public authentication endpoints
@@ -99,6 +99,22 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
         // Health check endpoints
         if (path.contains("/health")) {
             log.debug("Found public health check endpoint");
+            return true;
+        }
+
+        // Ailuros Control endpoints (demo and monitoring)
+        if (path.contains("/api/ailuros")) {
+            log.debug("Found public Ailuros Control endpoint");
+            return true;
+        }
+
+        // Static files (dashboard, index, etc.)
+        if (path.equals("/") ||
+            path.equals("/index.html") ||
+            path.equals("/ailuros-dashboard.html") ||
+            path.equals("/favicon.ico") ||
+            path.equals("/error")) {
+            log.debug("Found public static file");
             return true;
         }
 

@@ -48,6 +48,10 @@ public class CallDetailDTO {
     // Metadata
     private String upstreamRequestId;
     private Instant createdAt;
+    private String windowBucket;
+    private List<String> flagReasonCodes;
+    private String flagRuleVersion;
+    private BaselineRefDTO baselineRef;
 
     // Flags
     private List<FlagDTO> flags;

@@ -87,10 +87,10 @@ class SseStreamingLifecycleTest {
             public void initialize(Session session) {
                 SseEmitter emitter = new SseEmitter(100L); // 100ms timeout
                 emitter.onTimeout(() -> {
-                    log.info("Timeout triggered for session: {}", session.getSessionToken());
+                    // Timeout callback reached
                 });
                 emitter.onCompletion(() -> {
-                    log.info("Completed for session: {}", session.getSessionToken());
+                    // Completion callback reached
                 });
             }
         };

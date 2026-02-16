@@ -1,6 +1,7 @@
 package com.mcpgateway.service;
 
 import com.mcpgateway.domain.McpServer;
+import com.mcpgateway.domain.Session;
 import com.mcpgateway.dto.session.MessageRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -673,6 +674,17 @@ public class McpServerConnectionService {
                 log.warn("Unknown transport type for session: {}", sessionId);
                 closeUpstreamConnection(sessionId);
         }
+    }
+
+    /**
+     * Backward-compatible overload for callers using Session transport enum.
+     */
+    public void closeUpstreamConnectionByType(UUID sessionId, Session.TransportType transportType) {
+        if (transportType == null) {
+            closeUpstreamConnection(sessionId);
+            return;
+        }
+        closeUpstreamConnectionByType(sessionId, McpServer.TransportType.valueOf(transportType.name()));
     }
 
     // ==================== Lifecycle Management ====================

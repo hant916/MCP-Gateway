@@ -107,4 +107,18 @@ public class McpTool {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+    /**
+     * Backward-compatible alias for name field.
+     */
+    public String getToolName() {
+        return this.name;
+    }
+
+    /**
+     * Backward-compatible alias for name field.
+     */
+    public void setToolName(String toolName) {
+        this.name = toolName;
+    }
 } 

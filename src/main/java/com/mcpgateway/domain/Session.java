@@ -75,4 +75,24 @@ public class Session {
     public boolean isExpired() {
         return new Timestamp(System.currentTimeMillis()).after(expiresAt);
     }
+
+    /**
+     * Backward-compatible setter for String-based transport values.
+     */
+    public void setTransportType(TransportType transportType) {
+        this.transportType = transportType;
+    }
+
+    /**
+     * Backward-compatible setter for String-based transport values.
+     */
+    public void setTransportType(String transportType) {
+        if (transportType == null || transportType.isBlank()) {
+            this.transportType = null;
+            return;
+        }
+
+        String normalized = transportType.trim().toUpperCase().replace('-', '_');
+        this.transportType = TransportType.valueOf(normalized);
+    }
 } 

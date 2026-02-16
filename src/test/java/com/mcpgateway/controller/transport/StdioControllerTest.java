@@ -177,7 +177,7 @@ class StdioControllerTest {
     void closeConnection_WithConnectionServiceException_ShouldPropagateException() {
         // Arrange
         doThrow(new RuntimeException("Close error"))
-            .when(connectionService).closeUpstreamConnectionByType(any(), any());
+            .when(connectionService).closeUpstreamConnectionByType(any(), any(Session.TransportType.class));
 
         // Act & Assert
         assertThrows(RuntimeException.class,

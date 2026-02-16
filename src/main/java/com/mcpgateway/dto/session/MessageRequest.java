@@ -2,10 +2,13 @@ package com.mcpgateway.dto.session;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 
 @Data
 public class MessageRequest {
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     // Current format fields
     private String type;
     private String tool;
@@ -43,5 +46,17 @@ public class MessageRequest {
             return params;
         }
         return arguments;
+    }
+
+    public void setData(Object data) {
+        this.data = OBJECT_MAPPER.valueToTree(data);
+    }
+
+    public void setArguments(Object arguments) {
+        this.arguments = OBJECT_MAPPER.valueToTree(arguments);
+    }
+
+    public void setParams(Object params) {
+        this.params = OBJECT_MAPPER.valueToTree(params);
     }
 } 

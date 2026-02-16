@@ -1,384 +1,693 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ailuros Control - Demo Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: #0a0e1a;
-            color: #e4e6eb;
-            padding: 20px;
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        header {
-            margin-bottom: 40px;
-            border-bottom: 2px solid #1e2532;
-            padding-bottom: 20px;
-        }
-
-        h1 {
-            font-size: 32px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .subtitle {
-            color: #8b92a7;
-            font-size: 14px;
-        }
-
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
-        }
-
-        .kpi-card {
-            background: #13171f;
-            border: 1px solid #1e2532;
-            border-radius: 12px;
-            padding: 24px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .kpi-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-        }
-
-        .kpi-label {
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #8b92a7;
-            margin-bottom: 8px;
-        }
-
-        .kpi-value {
-            font-size: 36px;
-            font-weight: 700;
-            color: #e4e6eb;
-            margin-bottom: 4px;
-        }
-
-        .kpi-trend {
-            font-size: 13px;
-            color: #8b92a7;
-        }
-
-        .kpi-trend.up {
-            color: #ef4444;
-        }
-
-        .kpi-trend.down {
-            color: #10b981;
-        }
-
-        .chart-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
-        }
-
-        .chart-card {
-            background: #13171f;
-            border: 1px solid #1e2532;
-            border-radius: 12px;
-            padding: 24px;
-        }
-
-        .chart-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            color: #e4e6eb;
-        }
-
-        .chart-container {
-            position: relative;
-            height: 300px;
-        }
-
-        .alert-box {
-            background: #ef444410;
-            border: 1px solid #ef444440;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .alert-box.show {
-            display: block;
-        }
-
-        .alert-title {
-            font-weight: 600;
-            color: #ef4444;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-
-        .alert-message {
-            font-size: 13px;
-            color: #e4e6eb;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 60px;
-            color: #8b92a7;
-        }
-
-        .scenario-indicator {
-            display: inline-block;
-            padding: 4px 12px;
-            background: #667eea20;
-            border: 1px solid #667eea;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-            color: #667eea;
-            margin-left: 12px;
-        }
-
-        .refresh-btn {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            float: right;
-        }
-
-        .refresh-btn:hover {
-            background: #5568d3;
-        }
-
-        .full-width {
-            grid-column: 1 / -1;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ailuros Control - Demo Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0a0e1a;color:#e4e6eb;padding:18px;line-height:1.5}
+.container{max-width:1480px;margin:0 auto}
+header{margin-bottom:18px;border-bottom:1px solid #1e2532;padding-bottom:14px}
+.header-row{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
+h1{font-size:34px;font-weight:700;margin-bottom:6px;background:linear-gradient(135deg,#6e84ff,#5bd0ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{color:#8b92a7;font-size:13px}
+.actions{display:flex;gap:10px;align-items:center}
+.window-switch{display:inline-flex;border:1px solid #2b3343;border-radius:8px;overflow:hidden;background:#141b2b}
+.window-btn{border:0;background:transparent;color:#8b92a7;font-size:12px;font-weight:700;padding:9px 12px;cursor:pointer}
+.window-btn.active{background:#667eea;color:#fff}
+.refresh-btn{border:0;background:#667eea;color:#fff;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer}
+.coherence-strip{background:#111a2a;border:1px solid #2a3a56;border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.coherence-line{font-size:12px;color:#a9b5cc;line-height:1.5}
+.coherence-key{color:#8ba3d9;font-weight:700}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:14px}
+.kpi-card{background:#13171f;border:1px solid #1e2532;border-radius:12px;padding:16px;position:relative}
+.kpi-card::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:#667eea}
+.kpi-label{font-size:11px;color:#8b92a7;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.kpi-value{font-size:36px;font-weight:700;margin-bottom:6px}
+.kpi-trend{font-size:12px;color:#8b92a7}.kpi-trend.up{color:#ef4444}.kpi-trend.down{color:#10b981}
+.chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:14px;margin-bottom:14px}
+.chart-card{background:#13171f;border:1px solid #1e2532;border-radius:12px;padding:14px}
+.full{grid-column:1/-1}
+.chart-title{font-size:15px;font-weight:700;margin-bottom:10px}
+.chart-container{position:relative;height:260px}
+.panel{background:#13171f;border:1px solid #1e2532;border-radius:12px;padding:14px;margin-bottom:14px}
+.section-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.meta{color:#8b92a7;font-size:12px}
+.root-cause{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-bottom:10px}
+.root-item{background:#0f1521;border:1px solid #273045;border-radius:8px;padding:9px}
+.root-label{color:#8b92a7;font-size:11px;text-transform:uppercase;margin-bottom:3px}
+.root-value{font-size:18px;font-weight:700}
+.root-sub{font-size:12px;color:#9aa0b2}
+.table-wrap{border:1px solid #273045;border-radius:8px;overflow-x:auto}
+table{width:100%;min-width:920px;border-collapse:collapse}
+th,td{border-bottom:1px solid #1f2a3e;padding:9px 8px;text-align:left;font-size:12px;white-space:nowrap}
+th{font-size:11px;color:#9aa3ba;text-transform:uppercase;background:#101725;letter-spacing:.05em}
+.status-pill{display:inline-block;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:700;text-transform:uppercase}
+.status-pill.ok{color:#10b981;border:1px solid #10b98170;background:#10b98120}
+.status-pill.error{color:#ef4444;border:1px solid #ef444470;background:#ef444420}
+.reason-tags{display:flex;flex-wrap:wrap;gap:4px}
+.reason-tag{border-radius:999px;padding:2px 7px;font-size:10px;font-weight:700;letter-spacing:.02em;background:#24304a;color:#d0dcf7;border:1px solid #3c4f75}
+.action-cell{display:flex;gap:6px}
+.mini-btn{border:1px solid #374055;background:#171f2f;color:#e4e6eb;border-radius:6px;font-size:11px;font-weight:600;padding:4px 7px;cursor:pointer}
+.mini-btn.active{background:#667eea;border-color:#667eea}
+.mini-btn.inspect{border-color:#4f72ff;color:#aac0ff}
+.selected-row td{background:#1a2437}
+.two-col{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:14px}
+.placeholder{color:#8b92a7;font-size:13px;padding:16px 0}
+.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.detail-item{background:#0f1521;border:1px solid #273045;border-radius:8px;padding:8px 10px}
+.detail-key{color:#8b92a7;font-size:11px;text-transform:uppercase;margin-bottom:3px}
+.detail-value{font-size:13px;word-break:break-all}
+.text-title{color:#9aa3ba;font-size:12px;margin:8px 0 5px}
+pre{background:#0d1320;border:1px solid #273045;border-radius:8px;padding:10px;font-size:12px;line-height:1.4;white-space:pre-wrap;max-height:240px;overflow:auto}
+.compare-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.compare-card{background:#0f1521;border:1px solid #273045;border-radius:8px;padding:8px 10px}
+.compare-label{color:#8b92a7;font-size:11px;text-transform:uppercase;margin-bottom:3px}
+.compare-value{font-size:14px;font-weight:700}
+.alert-box{background:#ef444410;border:1px solid #ef444440;border-radius:8px;padding:12px;margin-bottom:10px}
+.alert-title{font-size:13px;font-weight:700;color:#ef4444;margin-bottom:4px}
+.alert-msg{font-size:12px;color:#e4e6eb}
+.loading{text-align:center;color:#8b92a7;padding:20px}
+@media (max-width:900px){.detail-grid,.compare-grid{grid-template-columns:1fr}.chart-grid,.two-col{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Ailuros Control <span class="scenario-indicator">DEMO MODE</span></h1>
-            <p class="subtitle">LLM Call Observability & Governance Dashboard</p>
-            <button class="refresh-btn" onclick="loadData()">Refresh Data</button>
-        </header>
+<div class="container">
+<header>
+<div class="header-row">
+<div>
+<h1>Ailuros Control <span style="font-size:11px;color:#667eea;border:1px solid #667eea;padding:3px 8px;border-radius:10px;vertical-align:middle">DEMO MODE</span></h1>
+<p id="windowLabel" class="subtitle">LLM Call Observability & Governance Dashboard</p>
+</div>
+<div class="actions">
+<div class="window-switch">
+<button id="window7" class="window-btn" onclick="setWindowDays(7)">7D</button>
+<button id="window30" class="window-btn active" onclick="setWindowDays(30)">30D</button>
+</div>
+<button class="refresh-btn" onclick="loadData()">Refresh Data</button>
+</div>
+</div>
+</header>
 
-        <div id="alerts"></div>
+<div id="coherenceStrip" class="coherence-strip">
+<div class="coherence-line"><span class="coherence-key">Data Window:</span> --</div>
+<div class="coherence-line"><span class="coherence-key">Flag Policy:</span> --</div>
+<div class="coherence-line"><span class="coherence-key">Reliability Formula:</span> --</div>
+</div>
 
-        <div class="kpi-grid" id="kpis">
-            <div class="loading">Loading KPIs...</div>
-        </div>
+<div id="alerts"></div>
+<div id="kpis" class="kpi-grid"><div class="loading">Loading KPIs...</div></div>
 
-        <div class="chart-grid">
-            <div class="chart-card full-width">
-                <h3 class="chart-title">💰 Daily Cost Trend (Last 30 Days)</h3>
-                <div class="chart-container">
-                    <canvas id="costChart"></canvas>
-                </div>
-            </div>
+<div class="chart-grid">
+<div class="chart-card full">
+<h3 id="costTitle" class="chart-title">Daily Cost Trend (Last 30 Days)</h3>
+<div class="chart-container"><canvas id="costChart"></canvas></div>
+</div>
+<div class="chart-card">
+<h3 id="errorTitle" class="chart-title">Daily Error Rate (%)</h3>
+<div class="chart-container"><canvas id="errorChart"></canvas></div>
+</div>
+<div class="chart-card">
+<h3 id="volumeTitle" class="chart-title">Daily Call Volume</h3>
+<div class="chart-container"><canvas id="volumeChart"></canvas></div>
+</div>
+</div>
 
-            <div class="chart-card">
-                <h3 class="chart-title">🔥 Error Rate (%)</h3>
-                <div class="chart-container">
-                    <canvas id="errorChart"></canvas>
-                </div>
-            </div>
+<div class="panel">
+<div class="section-head">
+<h3 id="flaggedTitle" class="chart-title">Flagged Calls Drill-down</h3>
+<span id="flaggedMeta" class="meta"></span>
+</div>
+<div id="rootCause" class="root-cause"></div>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Time</th><th>Status</th><th>Model</th><th>Prompt Ref</th><th>Latency</th><th>Cost</th><th>Flags</th><th>Why</th><th>Actions</th></tr></thead>
+<tbody id="flaggedBody"></tbody>
+</table>
+</div>
+</div>
 
-            <div class="chart-card">
-                <h3 class="chart-title">📊 Call Volume</h3>
-                <div class="chart-container">
-                    <canvas id="volumeChart"></canvas>
-                </div>
-            </div>
-        </div>
+<div class="two-col">
+<div class="panel">
+<h3 class="chart-title">Call Detail</h3>
+<div id="detailPanel" class="placeholder">Select a flagged call to inspect details.</div>
+</div>
+<div class="panel">
+<h3 class="chart-title">Model / Prompt Diff</h3>
+<div id="comparePanel" class="placeholder">Select two calls (A and B) from the flagged list to compare.</div>
+</div>
+</div>
+
+<script>
+const API_BASE = '/api/ailuros';
+let costChart, errorChart, volumeChart;
+const state = {
+  projectKey: 'default',
+  windowDays: 30,
+  from: null,
+  to: null,
+  pinnedStart: null,
+  pinnedEnd: null,
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+  flaggedCalls: [],
+  selectedCallId: null,
+  compareA: null,
+  compareB: null,
+  compareResult: null,
+  detailCache: {},
+  windowMeta: null,
+  flagPolicyVersion: null,
+  reliabilityFormula: null
+};
+window.onload = () => {
+  hydrateWindowFromUrl();
+  setWindowDays(state.windowDays);
+};
+
+function hydrateWindowFromUrl() {
+  const query = new URLSearchParams(window.location.search);
+  const start = query.get('start');
+  const end = query.get('end');
+  const tz = query.get('tz');
+  if (tz) state.timezone = tz;
+  if (start && end) {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    if (!Number.isNaN(startDate.getTime()) && !Number.isNaN(endDate.getTime()) && endDate > startDate) {
+      state.pinnedStart = startDate.toISOString();
+      state.pinnedEnd = endDate.toISOString();
+      const diffDays = Math.round((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
+      if (diffDays <= 7) {
+        state.windowDays = 7;
+      } else {
+        state.windowDays = 30;
+      }
+    }
+  }
+}
+
+function setWindowDays(days) {
+  state.windowDays = days;
+  state.pinnedStart = null;
+  state.pinnedEnd = null;
+  document.getElementById('window7').classList.toggle('active', days === 7);
+  document.getElementById('window30').classList.toggle('active', days === 30);
+  loadData();
+}
+
+function getWindowRange(days) {
+  const to = new Date();
+  const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
+  return { from: from.toISOString(), to: to.toISOString() };
+}
+
+function updateLabels() {
+  document.getElementById('windowLabel').textContent = `Window: Last ${state.windowDays} days (${state.from.slice(0, 10)} to ${state.to.slice(0, 10)})`;
+  document.getElementById('costTitle').textContent = `Daily Cost Trend (Last ${state.windowDays} Days)`;
+  document.getElementById('errorTitle').textContent = `Daily Error Rate (%) - Last ${state.windowDays} Days`;
+  document.getElementById('volumeTitle').textContent = `Daily Call Volume - Last ${state.windowDays} Days`;
+  document.getElementById('flaggedTitle').textContent = `Flagged Calls Drill-down (Last ${state.windowDays} Days)`;
+}
+
+function updateUrlWindow() {
+  const query = new URLSearchParams(window.location.search);
+  query.set('start', state.from);
+  query.set('end', state.to);
+  query.set('tz', state.timezone);
+  const nextUrl = `${window.location.pathname}?${query.toString()}`;
+  window.history.replaceState({}, '', nextUrl);
+}
+
+function renderCoherenceStrip() {
+  const strip = document.getElementById('coherenceStrip');
+  const windowStart = state.windowMeta?.start ? String(state.windowMeta.start).slice(0, 10) : state.from.slice(0, 10);
+  const windowEnd = state.windowMeta?.end ? String(state.windowMeta.end).slice(0, 10) : state.to.slice(0, 10);
+  const timezone = state.windowMeta?.timezone || state.timezone || 'UTC';
+  const policy = state.flagPolicyVersion || 'unknown';
+  const formula = state.reliabilityFormula || '1 - (error_calls / total_calls)';
+
+  strip.innerHTML = `
+    <div class="coherence-line"><span class="coherence-key">Data Window:</span> ${escapeHtml(windowStart)} -> ${escapeHtml(windowEnd)} (${escapeHtml(timezone)})</div>
+    <div class="coherence-line"><span class="coherence-key">Flag Policy:</span> ${escapeHtml(policy)}</div>
+    <div class="coherence-line"><span class="coherence-key">Reliability Formula:</span> ${escapeHtml(formula)}</div>
+  `;
+}
+
+async function loadData() {
+  try {
+    const r = state.pinnedStart && state.pinnedEnd
+      ? { from: state.pinnedStart, to: state.pinnedEnd }
+      : getWindowRange(state.windowDays);
+    state.from = r.from; state.to = r.to;
+    state.detailCache = {};
+    state.compareResult = null;
+    updateLabels();
+
+    const params = new URLSearchParams({ projectKey: state.projectKey, from: state.from, to: state.to, tz: state.timezone });
+    const flaggedParams = new URLSearchParams({
+      projectKey: state.projectKey,
+      from: state.from,
+      to: state.to,
+      tz: state.timezone,
+      flagged: 'true',
+      page: '0',
+      size: '50'
+    });
+
+    const [kpis, costSummary, flaggedPage] = await Promise.all([
+      fetchJSON(`${API_BASE}/overview?${params.toString()}`),
+      fetchJSON(`${API_BASE}/cost/summary?${params.toString()}`),
+      fetchJSON(`${API_BASE}/calls?${flaggedParams.toString()}`)
+    ]);
+
+    state.flaggedCalls = Array.isArray(flaggedPage.content) ? flaggedPage.content : [];
+    state.windowMeta = kpis.window || null;
+    state.flagPolicyVersion = kpis.flagPolicy?.version || null;
+    state.reliabilityFormula = kpis.kpiFormulas?.reliability || null;
+    updateUrlWindow();
+    renderCoherenceStrip();
+    reconcileSelection();
+    renderKPIs(kpis, costSummary);
+    renderCharts(costSummary);
+    renderAlerts(kpis);
+    renderFlagged();
+
+    if (state.selectedCallId) {
+      await loadCallDetail(state.selectedCallId, false);
+    } else {
+      renderCallDetail(null);
+    }
+
+    if (state.compareA && state.compareB && state.compareA !== state.compareB) {
+      await loadComparison(false);
+    } else {
+      state.compareResult = null;
+      renderCompare();
+    }
+  } catch (e) {
+    console.error(e);
+    showError(e.message || 'Failed to load data');
+  }
+}
+
+function reconcileSelection() {
+  const ids = new Set(state.flaggedCalls.map(c => c.id));
+  if (!state.selectedCallId || !ids.has(state.selectedCallId)) state.selectedCallId = state.flaggedCalls[0]?.id || null;
+  if (!state.compareA || !ids.has(state.compareA)) state.compareA = state.flaggedCalls[0]?.id || null;
+  if (!state.compareB || !ids.has(state.compareB) || state.compareA === state.compareB) state.compareB = state.flaggedCalls[1]?.id || null;
+}
+
+async function fetchJSON(url) {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`HTTP ${res.status}${txt ? ` - ${txt}` : ''}`);
+  }
+  return res.json();
+}
+
+function showError(message) {
+  const k = document.getElementById('kpis');
+  k.innerHTML = `<div class="alert-box"><div class="alert-title">Connection Error</div><div class="alert-msg">${escapeHtml(message)}</div></div>`;
+}
+
+function createKpiCard(label, value, trend, trendClass = '') {
+  const card = document.createElement('div');
+  card.className = 'kpi-card';
+  card.innerHTML = `<div class="kpi-label">${escapeHtml(label)}</div><div class="kpi-value">${escapeHtml(value)}</div><div class="kpi-trend ${trendClass}">${escapeHtml(trend)}</div>`;
+  return card;
+}
+
+function renderKPIs(kpis, costSummary) {
+  const node = document.getElementById('kpis');
+  node.textContent = '';
+  const reliability = Number(kpis.reliabilityScore || 0);
+  const errorRate = Number(kpis.errorRate || 0);
+  const totalCalls = Number(kpis.totalCalls || 0);
+  const flagged = Number(kpis.flaggedCallsCount || 0);
+  const totalCost = Number(costSummary.totalCost ?? kpis.totalCost ?? 0);
+  const trend = Number(kpis.costTrend || 0);
+  const trendArrow = trend > 0 ? 'UP' : trend < 0 ? 'DOWN' : 'FLAT';
+
+  node.appendChild(createKpiCard('Reliability', `${reliability.toFixed(1)}%`, `${totalCalls} calls, ${errorRate.toFixed(1)}% errors`));
+  node.appendChild(createKpiCard('Flagged Calls', `${flagged}`, `${Number(kpis.flaggedPercentage || 0).toFixed(1)}% of total`));
+  node.appendChild(createKpiCard('Total Cost', `$${totalCost.toFixed(2)}`, `${trendArrow} ${Math.abs(trend).toFixed(1)}% vs last period`, trend > 0 ? 'up' : trend < 0 ? 'down' : ''));
+  node.appendChild(createKpiCard('p95 Latency (OK Calls)', kpis.p95LatencyMs ? `${Math.round(Number(kpis.p95LatencyMs))}ms` : 'N/A', '95th percentile of successful calls'));
+}
+
+function normalizeDailySeries(daily) {
+  const byDate = new Map((daily || []).map(row => [row.date, row]));
+  const end = new Date(state.to); end.setHours(0, 0, 0, 0);
+  const out = [];
+  for (let i = state.windowDays - 1; i >= 0; i--) {
+    const d = new Date(end); d.setDate(end.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    const row = byDate.get(key) || {};
+    out.push({ date: key, cost: Number(row.cost || 0), errorRate: Number(row.errorRate || 0), callCount: Number(row.callCount || 0) });
+  }
+  return out;
+}
+
+function chartOptions() {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, grid: { color: '#1e2532' }, ticks: { color: '#8b92a7' } },
+      x: { grid: { display: false }, ticks: { color: '#8b92a7', maxRotation: 45 } }
+    }
+  };
+}
+
+function renderCharts(costSummary) {
+  const rows = normalizeDailySeries(costSummary.dailyCosts || []);
+  const labels = rows.map(r => r.date);
+
+  if (costChart) costChart.destroy();
+  if (errorChart) errorChart.destroy();
+  if (volumeChart) volumeChart.destroy();
+
+  costChart = new Chart(document.getElementById('costChart'), {
+    type: 'line',
+    data: { labels, datasets: [{ data: rows.map(r => r.cost), borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,.1)', fill: true, tension: .35 }] },
+    options: chartOptions()
+  });
+
+  errorChart = new Chart(document.getElementById('errorChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: rows.map(r => r.errorRate), backgroundColor: '#ef4444' }] },
+    options: chartOptions()
+  });
+
+  volumeChart = new Chart(document.getElementById('volumeChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: rows.map(r => r.callCount), backgroundColor: '#10b981' }] },
+    options: chartOptions()
+  });
+}
+
+function renderAlerts(kpis) {
+  const alerts = document.getElementById('alerts');
+  alerts.textContent = '';
+  const list = [];
+  if (kpis.errorRate && Number(kpis.errorRate) > 10) list.push({ t: 'Quality Risk', m: `Error rate ${Number(kpis.errorRate).toFixed(1)}% is above target.` });
+  if (kpis.p95LatencyMs && Number(kpis.p95LatencyMs) > 5000) list.push({ t: 'Latency Risk', m: `p95 latency ${Math.round(Number(kpis.p95LatencyMs))}ms is elevated.` });
+  if (kpis.flaggedCallsCount && Number(kpis.flaggedCallsCount) > 20) list.push({ t: 'Flagged Queue', m: `${Number(kpis.flaggedCallsCount)} calls flagged in this window.` });
+  list.forEach(a => {
+    const box = document.createElement('div');
+    box.className = 'alert-box';
+    box.innerHTML = `<div class="alert-title">${escapeHtml(a.t)}</div><div class="alert-msg">${escapeHtml(a.m)}</div>`;
+    alerts.appendChild(box);
+  });
+}
+function renderFlagged() {
+  document.getElementById('flaggedMeta').textContent = `${state.flaggedCalls.length} flagged calls in current window`;
+  const root = document.getElementById('rootCause');
+  root.textContent = '';
+
+  if (!state.flaggedCalls.length) {
+    root.innerHTML = '<div class="placeholder">No flagged calls in this window.</div>';
+  } else {
+    const topModel = topDimension(state.flaggedCalls, c => `${c.provider || 'n/a'}/${c.model || 'n/a'}`);
+    const topPrompt = topDimension(state.flaggedCalls, c => c.promptRef || 'n/a');
+    const topStatus = topDimension(state.flaggedCalls, c => c.status || 'n/a');
+    const avgLatency = state.flaggedCalls.reduce((sum, c) => sum + Number(c.latencyMs || 0), 0) / state.flaggedCalls.length;
+
+    root.appendChild(rootItem('Total Flagged', `${state.flaggedCalls.length}`, `${state.windowDays}-day window`));
+    root.appendChild(rootItem('Top Model', topModel.key, `${topModel.count} calls`));
+    root.appendChild(rootItem('Top Prompt Ref', topPrompt.key, `${topPrompt.count} calls`));
+    root.appendChild(rootItem('Top Status', topStatus.key, `${topStatus.count} calls`));
+    root.appendChild(rootItem('Avg Latency', `${Math.round(avgLatency)}ms`, 'within flagged calls'));
+  }
+
+  const body = document.getElementById('flaggedBody');
+  body.textContent = '';
+  if (!state.flaggedCalls.length) {
+    body.innerHTML = '<tr><td colspan="9">No flagged calls in this window.</td></tr>';
+    return;
+  }
+
+  state.flaggedCalls.forEach(call => {
+    const tr = document.createElement('tr');
+    if (call.id === state.selectedCallId) tr.className = 'selected-row';
+
+    tr.appendChild(td(formatDateTime(call.createdAt)));
+    tr.appendChild(statusTd(call.status));
+    tr.appendChild(td(`${call.provider || 'n/a'} / ${call.model || 'n/a'}`));
+    tr.appendChild(td(call.promptRef || 'n/a'));
+    tr.appendChild(td(call.latencyMs != null ? `${call.latencyMs}ms` : 'n/a'));
+    tr.appendChild(td(formatCurrency(call.costEstimateUsd)));
+    tr.appendChild(td(String(call.flagCount || 0)));
+    tr.appendChild(reasonTd(call.flagReasonCodes, call.flagRuleVersion));
+
+    const actionTd = document.createElement('td');
+    const wrap = document.createElement('div');
+    wrap.className = 'action-cell';
+
+    const inspectBtn = document.createElement('button');
+    inspectBtn.className = 'mini-btn inspect';
+    inspectBtn.textContent = 'Inspect';
+    inspectBtn.onclick = () => loadCallDetail(call.id);
+
+    const aBtn = document.createElement('button');
+    aBtn.className = `mini-btn ${state.compareA === call.id ? 'active' : ''}`.trim();
+    aBtn.textContent = 'Set A';
+    aBtn.onclick = () => setCompareSlot('A', call.id);
+
+    const bBtn = document.createElement('button');
+    bBtn.className = `mini-btn ${state.compareB === call.id ? 'active' : ''}`.trim();
+    bBtn.textContent = 'Set B';
+    bBtn.onclick = () => setCompareSlot('B', call.id);
+
+    wrap.appendChild(inspectBtn); wrap.appendChild(aBtn); wrap.appendChild(bBtn);
+    actionTd.appendChild(wrap);
+    tr.appendChild(actionTd);
+    body.appendChild(tr);
+  });
+}
+
+function topDimension(list, pick) {
+  const m = new Map();
+  list.forEach(item => {
+    const key = pick(item);
+    m.set(key, (m.get(key) || 0) + 1);
+  });
+  let bestKey = 'n/a';
+  let bestCount = 0;
+  m.forEach((count, key) => { if (count > bestCount) { bestKey = key; bestCount = count; } });
+  return { key: bestKey, count: bestCount };
+}
+
+function rootItem(label, value, sub) {
+  const div = document.createElement('div');
+  div.className = 'root-item';
+  div.innerHTML = `<div class="root-label">${escapeHtml(label)}</div><div class="root-value">${escapeHtml(value)}</div><div class="root-sub">${escapeHtml(sub)}</div>`;
+  return div;
+}
+
+function td(text) {
+  const cell = document.createElement('td');
+  cell.textContent = text;
+  return cell;
+}
+
+function statusTd(status) {
+  const cell = document.createElement('td');
+  const span = document.createElement('span');
+  const s = String(status || '').toLowerCase();
+  span.className = `status-pill ${s === 'ok' ? 'ok' : 'error'}`;
+  span.textContent = s || 'unknown';
+  cell.appendChild(span);
+  return cell;
+}
+
+function reasonTd(reasonCodes, ruleVersion) {
+  const cell = document.createElement('td');
+  const wrap = document.createElement('div');
+  wrap.className = 'reason-tags';
+  const list = Array.isArray(reasonCodes) && reasonCodes.length ? reasonCodes : ['UNKNOWN'];
+  list.forEach(code => {
+    const tag = document.createElement('span');
+    tag.className = 'reason-tag';
+    tag.textContent = normalizeReasonLabel(code);
+    wrap.appendChild(tag);
+  });
+  if (ruleVersion) {
+    wrap.title = `Rule version: ${ruleVersion}`;
+  }
+  cell.appendChild(wrap);
+  return cell;
+}
+
+async function loadCallDetail(callId, refreshTable = true) {
+  try {
+    state.selectedCallId = callId;
+    if (refreshTable) renderFlagged();
+
+    if (!state.detailCache[callId]) {
+      const detailParams = new URLSearchParams({ from: state.from, to: state.to, tz: state.timezone });
+      state.detailCache[callId] = await fetchJSON(`${API_BASE}/calls/${callId}?${detailParams.toString()}`);
+    }
+    renderCallDetail(state.detailCache[callId]);
+  } catch (e) {
+    const panel = document.getElementById('detailPanel');
+    panel.className = 'placeholder';
+    panel.textContent = e.message || 'Failed to load call detail';
+  }
+}
+
+function renderCallDetail(call) {
+  const panel = document.getElementById('detailPanel');
+  if (!call) {
+    panel.className = 'placeholder';
+    panel.textContent = 'Select a flagged call to inspect details.';
+    return;
+  }
+
+  panel.className = '';
+  const reasonText = Array.isArray(call.flagReasonCodes) && call.flagReasonCodes.length
+    ? call.flagReasonCodes.map(normalizeReasonLabel).join(', ')
+    : 'UNKNOWN';
+  const baselineRef = call.baselineRef || {};
+  panel.innerHTML = `
+    <div class="detail-grid">
+      ${detailItem('Call ID', call.id)}
+      ${detailItem('Trace ID', call.traceId)}
+      ${detailItem('Status', call.status)}
+      ${detailItem('Model', `${call.provider || 'n/a'} / ${call.model || 'n/a'}`)}
+      ${detailItem('Prompt Ref', call.promptRef || 'n/a')}
+      ${detailItem('Temperature', call.temperature != null ? String(call.temperature) : 'n/a')}
+      ${detailItem('Latency', call.latencyMs != null ? `${call.latencyMs}ms` : 'n/a')}
+      ${detailItem('Cost', formatCurrency(call.costEstimateUsd))}
+      ${detailItem('Tokens', call.tokensTotal != null ? String(call.tokensTotal) : 'n/a')}
+      ${detailItem('Created At', formatDateTime(call.createdAt))}
+      ${detailItem('Flag Reasons', reasonText)}
+      ${detailItem('Rule Version', call.flagRuleVersion || 'unknown')}
+      ${detailItem('Baseline p95', baselineRef.latencyP95Ms != null ? `${Math.round(Number(baselineRef.latencyP95Ms))}ms` : 'n/a')}
+      ${detailItem('Baseline Avg Cost', baselineRef.costRollingAvgUsd != null ? formatCurrency(baselineRef.costRollingAvgUsd) : 'n/a')}
+      ${detailItem('Baseline Model', baselineRef.baselineModel || 'n/a')}
+      ${detailItem('Baseline Prompt Hash', baselineRef.baselinePromptHash || 'n/a')}
     </div>
+    <div class="text-title">Request Text</div>
+    <pre>${escapeHtml(call.requestText || '(empty)')}</pre>
+    <div class="text-title">Response Text</div>
+    <pre>${escapeHtml(call.responseText || '(empty)')}</pre>
+  `;
+}
 
-    <script>
-        const API_BASE = '/api/ailuros';
-        let costChart, errorChart, volumeChart;
+function detailItem(label, value) {
+  return `<div class="detail-item"><div class="detail-key">${escapeHtml(label)}</div><div class="detail-value">${escapeHtml(value)}</div></div>`;
+}
 
-        window.onload = () => { loadData(); };
+async function setCompareSlot(slot, callId) {
+  if (slot === 'A') state.compareA = callId; else state.compareB = callId;
+  state.compareResult = null;
+  renderFlagged();
 
-        async function loadData() {
-            console.log('Loading dashboard data...');
-            try {
-                const kpis = await fetchJSON(`${API_BASE}/overview?projectKey=default`);
-                renderKPIs(kpis);
-                const costSummary = await fetchJSON(`${API_BASE}/cost/summary?projectKey=default`);
-                renderCharts(kpis, costSummary);
-                checkAlerts(kpis);
-            } catch (error) {
-                console.error('Failed to load data:', error);
-                showError();
-            }
-        }
+  if (state.compareA && state.compareB && state.compareA !== state.compareB) {
+    await loadComparison();
+  } else {
+    renderCompare();
+  }
+}
 
-        async function fetchJSON(url) {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            return response.json();
-        }
+async function loadComparison(showLoading = true) {
+  const panel = document.getElementById('comparePanel');
+  if (showLoading) {
+    panel.className = 'placeholder';
+    panel.textContent = 'Loading comparison...';
+  }
 
-        function showError() {
-            const kpisDiv = document.getElementById('kpis');
-            kpisDiv.textContent = '';
-            const alertDiv = document.createElement('div');
-            alertDiv.className = 'alert-box show full-width';
-            const titleDiv = document.createElement('div');
-            titleDiv.className = 'alert-title';
-            titleDiv.textContent = '⚠️ Connection Error';
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'alert-message';
-            msgDiv.textContent = 'Failed to load data. Ensure backend is running.';
-            alertDiv.appendChild(titleDiv);
-            alertDiv.appendChild(msgDiv);
-            kpisDiv.appendChild(alertDiv);
-        }
+  try {
+    state.compareResult = await fetchJSON(`${API_BASE}/compare?left=${encodeURIComponent(state.compareA)}&right=${encodeURIComponent(state.compareB)}`);
+    renderCompare();
+  } catch (e) {
+    panel.className = 'placeholder';
+    panel.textContent = e.message || 'Failed to compare calls';
+  }
+}
 
-        function renderKPIs(kpis) {
-            const kpisDiv = document.getElementById('kpis');
-            kpisDiv.textContent = '';
+function compareCard(label, value) {
+  return `<div class="compare-card"><div class="compare-label">${escapeHtml(label)}</div><div class="compare-value">${escapeHtml(value)}</div></div>`;
+}
 
-            const createCard = (label, value, trend, trendClass = '') => {
-                const card = document.createElement('div');
-                card.className = 'kpi-card';
-                const labelDiv = document.createElement('div');
-                labelDiv.className = 'kpi-label';
-                labelDiv.textContent = label;
-                const valueDiv = document.createElement('div');
-                valueDiv.className = 'kpi-value';
-                valueDiv.textContent = value;
-                const trendDiv = document.createElement('div');
-                trendDiv.className = `kpi-trend ${trendClass}`;
-                trendDiv.textContent = trend;
-                card.appendChild(labelDiv);
-                card.appendChild(valueDiv);
-                card.appendChild(trendDiv);
-                return card;
-            };
+function renderCompare() {
+  const panel = document.getElementById('comparePanel');
+  if (!state.compareA || !state.compareB) {
+    panel.className = 'placeholder';
+    panel.textContent = 'Select calls A and B to compare.';
+    return;
+  }
+  if (state.compareA === state.compareB) {
+    panel.className = 'placeholder';
+    panel.textContent = 'Select two different calls for comparison.';
+    return;
+  }
+  if (!state.compareResult) {
+    panel.className = 'placeholder';
+    panel.textContent = `Ready to compare A(${state.compareA.slice(0, 8)}) vs B(${state.compareB.slice(0, 8)}).`;
+    return;
+  }
 
-            const reliability = kpis.reliabilityScore ? kpis.reliabilityScore.toFixed(1) : '0.0';
-            const errorRate = kpis.errorRate ? kpis.errorRate.toFixed(1) : '0.0';
-            const totalCalls = kpis.totalCalls || 0;
+  const c = state.compareResult;
+  const s = c.summary || {};
+  const similarity = Number(s.textSimilarity || 0) * 100;
+  const costDiff = Number(s.costDifference || 0);
+  const latencyDiff = Number(s.latencyDifference || 0);
+  const tokenDiff = Number(s.tokenDifference || 0);
+  const promptChanged = (c.callA?.promptRef || '') !== (c.callB?.promptRef || '');
 
-            kpisDiv.appendChild(createCard('Reliability', `${reliability}%`, `${totalCalls} calls · ${errorRate}% errors`));
-            kpisDiv.appendChild(createCard('Flagged Calls', kpis.flaggedCallsCount || 0, `${(kpis.flaggedPercentage || 0).toFixed(1)}% of total`));
+  panel.className = '';
+  panel.innerHTML = `
+    <div class="meta">A: ${escapeHtml(String(s.modelA || c.callA?.model || 'n/a'))} (${escapeHtml(c.callA?.promptRef || 'n/a')}) | B: ${escapeHtml(String(s.modelB || c.callB?.model || 'n/a'))} (${escapeHtml(c.callB?.promptRef || 'n/a')})</div>
+    <div class="compare-grid">
+      ${compareCard('Text Similarity', `${similarity.toFixed(1)}%`)}
+      ${compareCard('Model Changed', s.sameModel ? 'No' : 'Yes')}
+      ${compareCard('Prompt Changed', promptChanged ? 'Yes' : 'No')}
+      ${compareCard('Cost Delta (B-A)', `${costDiff >= 0 ? '+' : ''}$${costDiff.toFixed(4)}`)}
+      ${compareCard('Latency Delta (B-A)', `${latencyDiff >= 0 ? '+' : ''}${Math.round(latencyDiff)}ms`)}
+      ${compareCard('Token Delta (B-A)', `${tokenDiff >= 0 ? '+' : ''}${Math.round(tokenDiff)}`)}
+    </div>
+    <div class="text-title">Response Diff</div>
+    <pre>${escapeHtml(c.diffText || '(no diff available)')}</pre>
+  `;
+}
 
-            const cost = kpis.totalCost ? `$${kpis.totalCost.toFixed(2)}` : '$0.00';
-            const costTrend = kpis.costTrend || 0;
-            const trendText = `${costTrend > 0 ? '↑' : '↓'} ${Math.abs(costTrend).toFixed(1)}% vs last period`;
-            kpisDiv.appendChild(createCard('Total Cost', cost, trendText, costTrend > 0 ? 'up' : 'down'));
+function formatDateTime(v) {
+  if (!v) return 'n/a';
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? String(v) : `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
+}
 
-            const latency = kpis.p95LatencyMs ? `${Math.round(kpis.p95LatencyMs)}ms` : 'N/A';
-            kpisDiv.appendChild(createCard('p95 Latency', latency, '95th percentile response time'));
-        }
+function formatCurrency(v) {
+  return `$${Number(v || 0).toFixed(4)}`;
+}
 
-        function renderCharts(kpis, costSummary) {
-            const costData = (costSummary.dailyCosts || []).map(d => ({
-                date: d.date,
-                cost: parseFloat(d.cost || 0)
-            }));
-            const dates = costData.map(d => d.date);
-            const costs = costData.map(d => d.cost);
+function normalizeReasonLabel(code) {
+  const map = {
+    ERROR: 'ERROR',
+    LATENCY_P95_SPIKE: 'LATENCY SPIKE',
+    COST_SPIKE: 'COST SPIKE',
+    MODEL_CHANGED: 'MODEL CHANGED',
+    PROMPT_CHANGED: 'PROMPT CHANGED',
+    MANUAL_FLAG: 'MANUAL FLAG',
+    UNKNOWN: 'UNKNOWN'
+  };
+  return map[code] || code;
+}
 
-            if (costChart) costChart.destroy();
-            if (errorChart) errorChart.destroy();
-            if (volumeChart) volumeChart.destroy();
-
-            const ctxCost = document.getElementById('costChart').getContext('2d');
-            costChart = new Chart(ctxCost, {
-                type: 'line',
-                data: {
-                    labels: dates,
-                    datasets: [{
-                        label: 'Daily Cost ($)',
-                        data: costs,
-                        borderColor: '#667eea',
-                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#1e2532' }, ticks: { color: '#8b92a7' } }, x: { grid: { display: false }, ticks: { color: '#8b92a7', maxRotation: 45 } } } }
-            });
-
-            const ctxError = document.getElementById('errorChart').getContext('2d');
-            errorChart = new Chart(ctxError, {
-                type: 'bar',
-                data: { labels: dates.slice(-7), datasets: [{ label: 'Error %', data: dates.slice(-7).map(() => Math.random() * 5), backgroundColor: '#ef4444' }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 35, grid: { color: '#1e2532' }, ticks: { color: '#8b92a7' } }, x: { grid: { display: false }, ticks: { color: '#8b92a7' } } } }
-            });
-
-            const ctxVolume = document.getElementById('volumeChart').getContext('2d');
-            volumeChart = new Chart(ctxVolume, {
-                type: 'bar',
-                data: { labels: dates.slice(-7), datasets: [{ label: 'Calls', data: dates.slice(-7).map(() => 40 + Math.random() * 20), backgroundColor: '#10b981' }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#1e2532' }, ticks: { color: '#8b92a7' } }, x: { grid: { display: false }, ticks: { color: '#8b92a7' } } } }
-            });
-        }
-
-        function checkAlerts(kpis) {
-            const alertsDiv = document.getElementById('alerts');
-            alertsDiv.textContent = '';
-
-            const createAlert = (title, message) => {
-                const box = document.createElement('div');
-                box.className = 'alert-box show';
-                const titleDiv = document.createElement('div');
-                titleDiv.className = 'alert-title';
-                titleDiv.textContent = title;
-                const msgDiv = document.createElement('div');
-                msgDiv.className = 'alert-message';
-                msgDiv.textContent = message;
-                box.appendChild(titleDiv);
-                box.appendChild(msgDiv);
-                return box;
-            };
-
-            if (kpis.totalCost && kpis.totalCost > 50) {
-                alertsDiv.appendChild(createAlert('💰 Cost Budget Alert', `Total cost ($${kpis.totalCost.toFixed(2)}) exceeded $50. Consider switching models.`));
-            }
-            if (kpis.errorRate && kpis.errorRate > 20) {
-                alertsDiv.appendChild(createAlert('🔥 High Error Rate', `Error rate (${kpis.errorRate.toFixed(1)}%) is critically high.`));
-            }
-            if (kpis.flaggedCallsCount && kpis.flaggedCallsCount > 20) {
-                alertsDiv.appendChild(createAlert('🚩 Multiple Flagged Calls', `${kpis.flaggedCallsCount} calls flagged. Quality degradation detected.`));
-            }
-        }
-    </script>
+function escapeHtml(v) {
+  return String(v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+</script>
+</div>
 </body>
 </html>

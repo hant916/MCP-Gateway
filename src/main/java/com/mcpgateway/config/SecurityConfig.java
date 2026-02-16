@@ -48,6 +48,15 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/register", "/auth/authenticate").permitAll()
                 .requestMatchers(
+                    "/",
+                    "/index.html",
+                    "/ailuros-dashboard.html",
+                    "/favicon.ico",
+                    "/error"
+                ).permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/ailuros/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/ailuros/demo/generate").permitAll()
+                .requestMatchers(
                     "/health/**",
                     "/api-docs/**",
                     "/swagger-ui/**",

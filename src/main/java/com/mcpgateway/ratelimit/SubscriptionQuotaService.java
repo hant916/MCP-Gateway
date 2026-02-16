@@ -114,7 +114,7 @@ public class SubscriptionQuotaService {
                 return QuotaCheckResult.builder()
                         .allowed(false)
                         .reason("Monthly quota exceeded")
-                        .remainingQuota(remaining)
+                        .remainingQuota(remaining.longValue())
                         .resetTime(getNextMonthResetTime())
                         .tier(tier.getName())
                         .build();

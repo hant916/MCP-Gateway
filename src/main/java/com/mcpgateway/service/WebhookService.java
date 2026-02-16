@@ -49,6 +49,21 @@ public class WebhookService {
     }
 
     /**
+     * Backward-compatible wrapper used by event listeners/tests.
+     */
+    @Async
+    public void sendWebhook(UUID userId, String eventType, Map<String, Object> payload) {
+        Map<String, Object> enrichedPayload = new HashMap<>();
+        if (payload != null) {
+            enrichedPayload.putAll(payload);
+        }
+        if (userId != null) {
+            enrichedPayload.putIfAbsent("user_id", userId.toString());
+        }
+        triggerWebhooks(eventType, enrichedPayload);
+    }
+
+    /**
      * Deliver a webhook to a specific endpoint
      */
     @Transactional

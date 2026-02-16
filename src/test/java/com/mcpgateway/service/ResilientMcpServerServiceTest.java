@@ -40,10 +40,10 @@ class ResilientMcpServerServiceTest {
     private WebClient.RequestBodySpec requestBodySpec;
 
     @Mock
-    private WebClient.RequestHeadersUriSpec<?> requestHeadersUriSpec;
+    private WebClient.RequestHeadersUriSpec requestHeadersUriSpec;
 
     @Mock
-    private WebClient.RequestHeadersSpec<?> requestHeadersSpec;
+    private WebClient.RequestHeadersSpec requestHeadersSpec;
 
     @Mock
     private WebClient.ResponseSpec responseSpec;
@@ -156,7 +156,7 @@ class ResilientMcpServerServiceTest {
         when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.toBodilessEntity()).thenReturn(
-                Mono.just(org.springframework.http.ResponseEntity.ok().build())
+                Mono.just(org.springframework.http.ResponseEntity.ok().<Void>build())
                         .delayElement(Duration.ofMillis(50))
         );
 

@@ -1,6 +1,7 @@
 package com.mcpgateway.metrics;
 
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
@@ -103,9 +104,11 @@ public class McpGatewayMetrics {
                 .register(meterRegistry)
                 .increment();
 
-        meterRegistry.summary("mcp.payments.amount")
+        DistributionSummary.builder("mcp.payments.amount")
                 .tag("status", status)
                 .tag("currency", currency)
+                .description("Payment amounts")
+                .register(meterRegistry)
                 .record(amount);
     }
 

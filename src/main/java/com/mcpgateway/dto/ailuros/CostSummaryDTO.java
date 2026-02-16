@@ -6,9 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 
 /**
  * DTO for cost summary and analysis
@@ -23,4 +21,5 @@ public class CostSummaryDTO {
     private List<DailyCostDTO> dailyCosts;
     private List<ModelCostDTO> costsByModel;
     private CostTrendDTO trend;
+    private DashboardWindowDTO window;
 }

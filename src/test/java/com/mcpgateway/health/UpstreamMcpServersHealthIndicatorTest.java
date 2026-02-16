@@ -40,10 +40,10 @@ class UpstreamMcpServersHealthIndicatorTest {
     private WebClient webClient;
 
     @Mock
-    private WebClient.RequestHeadersUriSpec<?> requestHeadersUriSpec;
+    private WebClient.RequestHeadersUriSpec requestHeadersUriSpec;
 
     @Mock
-    private WebClient.RequestHeadersSpec<?> requestHeadersSpec;
+    private WebClient.RequestHeadersSpec requestHeadersSpec;
 
     @Mock
     private WebClient.ResponseSpec responseSpec;
@@ -83,7 +83,7 @@ class UpstreamMcpServersHealthIndicatorTest {
         when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.toBodilessEntity()).thenReturn(
-                Mono.just(ResponseEntity.ok().build()).delayElement(Duration.ofMillis(100))
+                Mono.just(ResponseEntity.ok().<Void>build()).delayElement(Duration.ofMillis(100))
         );
 
         // When
@@ -150,7 +150,7 @@ class UpstreamMcpServersHealthIndicatorTest {
         when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.toBodilessEntity())
-                .thenReturn(Mono.just(ResponseEntity.ok().build()).delayElement(Duration.ofMillis(50)))
+                .thenReturn(Mono.just(ResponseEntity.ok().<Void>build()).delayElement(Duration.ofMillis(50)))
                 .thenReturn(Mono.error(new WebClientResponseException(503, "Service Unavailable", null, null, null)));
 
         // When
@@ -179,7 +179,7 @@ class UpstreamMcpServersHealthIndicatorTest {
         when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.toBodilessEntity())
-                .thenReturn(Mono.just(ResponseEntity.ok().build()).delayElement(Duration.ofMillis(50)))
+                .thenReturn(Mono.just(ResponseEntity.ok().<Void>build()).delayElement(Duration.ofMillis(50)))
                 .thenReturn(Mono.error(new WebClientResponseException(503, "Service Unavailable", null, null, null)))
                 .thenReturn(Mono.error(new RuntimeException("Connection timeout")));
 
@@ -221,7 +221,7 @@ class UpstreamMcpServersHealthIndicatorTest {
         when(requestHeadersUriSpec.uri("http://localhost:8081/health")).thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.toBodilessEntity()).thenReturn(
-                Mono.just(ResponseEntity.ok().build()).delayElement(Duration.ofMillis(50))
+                Mono.just(ResponseEntity.ok().<Void>build()).delayElement(Duration.ofMillis(50))
         );
 
         // When
@@ -245,7 +245,7 @@ class UpstreamMcpServersHealthIndicatorTest {
         when(requestHeadersUriSpec.uri("http://localhost:8081/health")).thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.toBodilessEntity()).thenReturn(
-                Mono.just(ResponseEntity.ok().build()).delayElement(Duration.ofMillis(50))
+                Mono.just(ResponseEntity.ok().<Void>build()).delayElement(Duration.ofMillis(50))
         );
 
         // When
@@ -269,7 +269,7 @@ class UpstreamMcpServersHealthIndicatorTest {
         when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.toBodilessEntity()).thenReturn(
-                Mono.just(ResponseEntity.ok().build()).delayElement(Duration.ofSeconds(10)) // Exceeds 5s timeout
+                Mono.just(ResponseEntity.ok().<Void>build()).delayElement(Duration.ofSeconds(10)) // Exceeds 5s timeout
         );
 
         // When

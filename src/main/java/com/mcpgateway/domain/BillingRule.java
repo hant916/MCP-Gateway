@@ -172,4 +172,18 @@ public class BillingRule {
 
         return cost;
     }
+
+    /**
+     * Backward-compatible alias for boolean-style access.
+     */
+    public boolean isActive() {
+        return Boolean.TRUE.equals(isActive);
+    }
+
+    /**
+     * Backward-compatible alias for boolean-style mutation.
+     */
+    public void setActive(boolean active) {
+        this.isActive = active;
+    }
 } 

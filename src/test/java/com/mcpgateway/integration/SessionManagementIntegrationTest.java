@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -213,7 +214,7 @@ class SessionManagementIntegrationTest {
                 .getResponse()
                 .getContentAsString();
 
-        UUID sessionId = objectMapper.readTree(createResponse).get("id").asText(UUID.class);
+        UUID sessionId = UUID.fromString(objectMapper.readTree(createResponse).get("id").asText());
 
         // 2. Get session details
         mockMvc.perform(get("/api/v1/sessions/" + sessionId)

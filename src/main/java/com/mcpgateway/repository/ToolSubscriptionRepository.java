@@ -14,9 +14,16 @@ import java.util.UUID;
 
 @Repository
 public interface ToolSubscriptionRepository extends JpaRepository<ToolSubscription, UUID> {
+    @Query("SELECT s FROM ToolSubscription s " +
+           "WHERE s.client.id = :clientId " +
+           "AND s.tool.id = :toolId " +
+           "AND s.status = :status")
     Optional<ToolSubscription> findByClientIdAndToolIdAndStatus(
+            @Param("clientId")
             UUID clientId,
+            @Param("toolId")
             UUID toolId,
+            @Param("status")
             ToolSubscription.SubscriptionStatus status
     );
 
@@ -36,7 +43,7 @@ public interface ToolSubscriptionRepository extends JpaRepository<ToolSubscripti
      * Count new subscriptions in date range
      */
     @Query("SELECT COUNT(s) FROM ToolSubscription s " +
-           "WHERE s.status = 'ACTIVE' AND s.createdAt BETWEEN :start AND :end")
+           "WHERE s.status = 'ACTIVE' AND s.startDate BETWEEN :start AND :end")
     Integer countNewSubscriptions(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end
@@ -46,7 +53,7 @@ public interface ToolSubscriptionRepository extends JpaRepository<ToolSubscripti
      * Count churned subscriptions in date range
      */
     @Query("SELECT COUNT(s) FROM ToolSubscription s " +
-           "WHERE s.status = 'INACTIVE' AND s.updatedAt BETWEEN :start AND :end")
+           "WHERE s.status = 'INACTIVE' AND s.endDate BETWEEN :start AND :end")
     Integer countChurnedSubscriptions(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end

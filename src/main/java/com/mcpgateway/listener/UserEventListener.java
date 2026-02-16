@@ -82,7 +82,7 @@ public class UserEventListener {
                     event.getUserId(),
                     event.getUsername(),
                     "USER_REGISTERED",
-                    event.getUserId().toString(),
+                    event.getUserId(),
                     AuditLog.Status.SUCCESS,
                     Map.of(
                             "email", event.getEmail(),

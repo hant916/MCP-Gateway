@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 /**
  * DTO for overview page KPIs
@@ -40,4 +41,9 @@ public class OverviewKpiDTO {
     // Trends
     private List<DailyCostDTO> costOverTime;
     private List<DailyDriftDTO> driftOverTime;
+
+    // Coherence metadata
+    private DashboardWindowDTO window;
+    private FlagPolicyDTO flagPolicy;
+    private Map<String, String> kpiFormulas;
 }

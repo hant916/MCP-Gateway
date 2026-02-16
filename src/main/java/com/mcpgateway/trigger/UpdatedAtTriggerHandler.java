@@ -1,58 +1,55 @@
 package com.mcpgateway.trigger;
 
+import org.h2.api.Trigger;
+
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 
 /**
  * H2 Database trigger handler for automatic updated_at column updates
- *
- * NOTE: Disabled (@Component removed) because H2 dependency has runtime scope
- * and org.h2.api.Trigger is not available at compile time.
- *
- * Alternative approach: Use JPA @PreUpdate annotation in entity classes instead.
- * This is already implemented in User.java and other entities.
  */
-// @Component - Removed to fix compilation error (H2 API not available at compile time)
-public class UpdatedAtTriggerHandler /* implements Trigger */ {
+public class UpdatedAtTriggerHandler implements Trigger {
 
-    // Implementation commented out - use JPA @PreUpdate instead
-    /*
+    // H2 gives column ordinal positions as 1-based, arrays in fire() are 0-based.
+    private int updatedAtArrayIndex = -1;
+
     @Override
     public void init(Connection conn, String schemaName, String triggerName,
-                    String tableName, boolean before, int type) {
-        // Initialization logic if needed
+                     String tableName, boolean before, int type) throws SQLException {
+        DatabaseMetaData metaData = conn.getMetaData();
+        try (ResultSet columns = metaData.getColumns(null, schemaName, tableName, null)) {
+            while (columns.next()) {
+                String columnName = columns.getString("COLUMN_NAME");
+                if ("updated_at".equalsIgnoreCase(columnName)) {
+                    int ordinal = columns.getInt("ORDINAL_POSITION");
+                    updatedAtArrayIndex = ordinal - 1;
+                    break;
+                }
+            }
+        }
+
+        if (updatedAtArrayIndex < 0) {
+            throw new SQLException("updated_at column not found for table: " + tableName);
+        }
     }
 
     @Override
     public void fire(Connection conn, Object[] oldRow, Object[] newRow) throws SQLException {
-        // Find the updated_at column index based on the table
-        int updatedAtIndex = getUpdatedAtColumnIndex(newRow.length);
-        newRow[updatedAtIndex] = new Timestamp(System.currentTimeMillis());
-    }
-
-    private int getUpdatedAtColumnIndex(int totalColumns) {
-        // The updated_at column index for each table:
-        // users: 5 (id, username, password, email, created_at, updated_at)
-        // api_specifications: 7 (id, name, description, spec_type, content, version, created_at, updated_at)
-        // mcp_tools: 6 (id, name, description, parameters, api_spec_id, created_at, updated_at)
-        
-        switch (totalColumns) {
-            case 6: return 5;  // users table
-            case 8: return 7;  // api_specifications table
-            case 7: return 6;  // mcp_tools table
-            default: return totalColumns - 1; // fallback to last column
+        if (updatedAtArrayIndex >= 0 && updatedAtArrayIndex < newRow.length) {
+            newRow[updatedAtArrayIndex] = new Timestamp(System.currentTimeMillis());
         }
     }
 
     @Override
     public void close() {
-        // Cleanup logic if needed
+        // No-op
     }
 
     @Override
     public void remove() {
-        // Removal logic if needed
+        // No-op
     }
-    */
-} 
+}

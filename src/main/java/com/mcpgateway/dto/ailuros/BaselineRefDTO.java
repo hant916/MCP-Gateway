@@ -6,19 +6,17 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 
 /**
- * DTO for daily cost aggregates
+ * Baseline values used to explain why a call was flagged.
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DailyCostDTO {
-    private LocalDate date;
-    private BigDecimal cost;
-    private Long callCount;
-    private Long errorCount;
-    private BigDecimal errorRate;
+public class BaselineRefDTO {
+    private Double latencyP95Ms;
+    private BigDecimal costRollingAvgUsd;
+    private String baselineModel;
+    private String baselinePromptHash;
 }

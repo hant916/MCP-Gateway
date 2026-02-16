@@ -80,7 +80,7 @@ public class AnalyticsService {
                             .toolId(toolId.toString())
                             .toolName(toolName)
                             .requestCount(requestCount)
-                            .uniqueUsers(uniqueUsers.intValue())
+                            .uniqueUsers(uniqueUsers)
                             .build();
                 })
                 .collect(Collectors.toList());

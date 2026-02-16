@@ -1,6 +1,7 @@
 package com.mcpgateway.dto.admin;
 
 import com.mcpgateway.ratelimit.SubscriptionQuotaService;
+import com.mcpgateway.domain.User;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -28,4 +29,19 @@ public class UpdateUserRequest {
     private Boolean isActive;
 
     private Boolean emailVerified;
+
+    public User.SubscriptionTier getSubscriptionTier() {
+        if (subscriptionTierName == null || subscriptionTierName.isBlank()) {
+            return null;
+        }
+        try {
+            return User.SubscriptionTier.valueOf(subscriptionTierName.toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    public void setSubscriptionTier(User.SubscriptionTier subscriptionTier) {
+        this.subscriptionTierName = subscriptionTier != null ? subscriptionTier.name() : null;
+    }
 }

@@ -88,10 +88,13 @@ public class AilurosControlController {
             @RequestParam(required = false) String env,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
+            @RequestParam(required = false) String tz,
             @RequestParam(required = false) String model,
             @RequestParam(required = false) String provider,
             @RequestParam(required = false) String promptRef,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) Boolean flagged,
+            @RequestParam(required = false) Boolean flaggedOnly,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
@@ -105,6 +108,8 @@ public class AilurosControlController {
         filter.setProvider(provider);
         filter.setPromptRef(promptRef);
         filter.setStatus(status);
+        filter.setFlaggedOnly(Boolean.TRUE.equals(flaggedOnly) || Boolean.TRUE.equals(flagged));
+        filter.setTimezone(tz);
 
         // Query
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
@@ -121,8 +126,12 @@ public class AilurosControlController {
     @GetMapping("/calls/{id}")
     @Operation(summary = "Get call detail",
                description = "Get full details of a specific call including request/response text")
-    public ResponseEntity<CallDetailDTO> getCallDetail(@PathVariable UUID id) {
-        CallDetailDTO call = controlService.getCallDetail(id);
+    public ResponseEntity<CallDetailDTO> getCallDetail(
+            @PathVariable UUID id,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
+            @RequestParam(required = false) String tz) {
+        CallDetailDTO call = controlService.getCallDetail(id, from, to, tz);
         return ResponseEntity.ok(call);
     }
 
@@ -134,8 +143,12 @@ public class AilurosControlController {
     @GetMapping("/calls/trace/{traceId}")
     @Operation(summary = "Get call by trace ID",
                description = "Get call details using the trace ID from the request header")
-    public ResponseEntity<CallDetailDTO> getCallByTraceId(@PathVariable String traceId) {
-        CallDetailDTO call = controlService.getCallByTraceId(traceId);
+    public ResponseEntity<CallDetailDTO> getCallByTraceId(
+            @PathVariable String traceId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
+            @RequestParam(required = false) String tz) {
+        CallDetailDTO call = controlService.getCallByTraceId(traceId, from, to, tz);
         return ResponseEntity.ok(call);
     }
 
@@ -195,10 +208,18 @@ public class AilurosControlController {
     @Operation(summary = "Compare two calls",
                description = "Generate diff and comparison summary for two calls")
     public ResponseEntity<CompareDTO> compareCalls(
-            @RequestParam UUID a,
-            @RequestParam UUID b) {
+            @RequestParam(required = false) UUID a,
+            @RequestParam(required = false) UUID b,
+            @RequestParam(required = false) UUID left,
+            @RequestParam(required = false) UUID right) {
 
-        CompareDTO comparison = comparisonService.compare(a, b);
+        UUID callA = a != null ? a : left;
+        UUID callB = b != null ? b : right;
+        if (callA == null || callB == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        CompareDTO comparison = comparisonService.compare(callA, callB);
         return ResponseEntity.ok(comparison);
     }
 
@@ -216,13 +237,14 @@ public class AilurosControlController {
     public ResponseEntity<CostSummaryDTO> getCostSummary(
             @RequestParam(required = false) String projectKey,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
+            @RequestParam(required = false) String tz) {
 
         String project = projectKey != null ? projectKey : "default";
         Instant fromDate = from != null ? from : Instant.now().minus(30, ChronoUnit.DAYS);
         Instant toDate = to != null ? to : Instant.now();
 
-        CostSummaryDTO summary = controlService.getCostSummary(project, fromDate, toDate);
+        CostSummaryDTO summary = controlService.getCostSummary(project, fromDate, toDate, tz);
         return ResponseEntity.ok(summary);
     }
 
@@ -240,13 +262,14 @@ public class AilurosControlController {
     public ResponseEntity<OverviewKpiDTO> getOverview(
             @RequestParam(required = false) String projectKey,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
+            @RequestParam(required = false) String tz) {
 
         String project = projectKey != null ? projectKey : "default";
-        Instant fromDate = from != null ? from : Instant.now().minus(7, ChronoUnit.DAYS);
+        Instant fromDate = from != null ? from : Instant.now().minus(30, ChronoUnit.DAYS);
         Instant toDate = to != null ? to : Instant.now();
 
-        OverviewKpiDTO kpis = controlService.getOverviewKpis(project, fromDate, toDate);
+        OverviewKpiDTO kpis = controlService.getOverviewKpis(project, fromDate, toDate, tz);
         return ResponseEntity.ok(kpis);
     }
 
