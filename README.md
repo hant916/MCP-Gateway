@@ -27,6 +27,42 @@ A comprehensive Spring Boot-based MCP (Model Context Protocol) Gateway that prov
 - **Message Forwarding**: Intelligent message routing with format adaptation
 - **Error Handling**: Comprehensive error handling and connection cleanup
 
+### 🛡️ Production-Ready Features
+
+#### Resilience & Fault Tolerance
+- **Circuit Breaker**: Resilience4j-based fault tolerance for upstream services
+- **Health Checks**: Custom health indicators for upstream MCP servers
+- **Retry Logic**: Automatic retry with exponential backoff
+- **Timeout Protection**: Configurable timeouts for all external calls
+- **Graceful Degradation**: Fallback responses when services are unavailable
+
+#### Performance & Scalability
+- **Local Caching**: Caffeine-based caching for tools, users, and subscriptions
+- **Database Read-Write Splitting**: Automatic routing to master/replica datasources
+- **Connection Pooling**: HikariCP with optimized settings
+- **Async Event Processing**: Non-blocking event handlers for webhooks and notifications
+
+#### Observability & Monitoring
+- **Distributed Tracing**: OpenTelemetry + Zipkin integration
+- **Prometheus Metrics**: Comprehensive business and system metrics
+- **Grafana Dashboards**: Pre-built dashboards for system health, business metrics, and circuit breakers
+- **Structured Logging**: JSON-formatted logs with trace IDs
+- **Audit Trail**: Complete audit logging for compliance (SOC 2, GDPR)
+
+#### Security & Compliance
+- **Audit Logging**: Full audit trail for all critical operations
+- **API Key Management**: Secure API key creation and validation
+- **Rate Limiting**: Per-user and global rate limits
+- **Input Validation**: Comprehensive request validation
+- **Secrets Management**: Kubernetes secrets integration
+
+#### DevOps & Deployment
+- **Kubernetes Ready**: Production-ready K8s manifests with HPA, ingress, and RBAC
+- **CI/CD Pipeline**: Automated testing, security scanning, and deployment
+- **One-Click Deployment**: Automated deployment scripts for staging and production
+- **Database Migrations**: Flyway-based schema versioning
+- **Monitoring Stack**: Docker Compose setup for Prometheus, Grafana, AlertManager, and Zipkin
+
 ## 🏗️ Architecture
 
 ```
@@ -242,9 +278,19 @@ mcp:
 
 ## 📚 Documentation
 
-- **[📮 Postman Collection Guide](POSTMAN_COLLECTION_GUIDE.md)** - Complete testing guide
-- **[💰 Billing System](BILLING_SYSTEM_README.md)** - Detailed billing documentation
-- **[📋 API Documentation](api-docs.yaml)** - OpenAPI specification
+### Core Documentation
+- **[📮 Postman Collection Guide](docs/POSTMAN_COLLECTION_GUIDE.md)** - Complete testing guide
+- **[💰 Billing System](docs/BILLING_SYSTEM_README.md)** - Detailed billing documentation
+- **[📋 API Documentation](docs/api-docs.yaml)** - OpenAPI specification
+- **[🏗️ Architecture](docs/ARCHITECTURE.md)** - System architecture and design
+- **[📊 Data Model](docs/DATA_MODEL.md)** - Database schema and relationships
+
+### Operational Documentation
+- **[🚀 Deployment Guide](scripts/README.md)** - Automated deployment scripts and procedures
+- **[📊 Monitoring Guide](grafana/README.md)** - Grafana dashboards and Prometheus metrics
+- **[🔧 Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[✅ Production Checklist](docs/PRODUCTION_DEPLOYMENT_CHECKLIST.md)** - Pre-deployment validation
+- **[⚡ Performance Testing](performance-tests/README.md)** - Load testing and benchmarks
 
 ## 🧪 Testing
 
@@ -301,11 +347,127 @@ src/main/resources/
 - **Use WebSocket**: When you need true bidirectional real-time communication
 - **Use STDIO**: For local MCP tools, CLI utilities, or subprocess communication
 
+## 📊 Monitoring & Observability
+
+### Start Monitoring Stack
+```bash
+# Start Prometheus, Grafana, AlertManager, and Zipkin
+docker-compose -f docker-compose-monitoring.yml up -d
+
+# Access dashboards
+# Grafana: http://localhost:3000 (admin/admin)
+# Prometheus: http://localhost:9090
+# Zipkin: http://localhost:9411
+# AlertManager: http://localhost:9093
+```
+
+### Available Grafana Dashboards
+- **System Health**: CPU, memory, JVM metrics, error rates
+- **Business Metrics**: Payments, revenue, subscriptions, user activity
+- **Circuit Breakers**: Resilience patterns and fault tolerance monitoring
+
+### Key Metrics
+```promql
+# Request rate
+rate(http_server_requests_seconds_count[1m])
+
+# Response time (p95)
+histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[1m]))
+
+# Error rate
+rate(http_server_requests_seconds_count{status=~"5.."}[1m])
+
+# Circuit breaker state
+resilience4j_circuitbreaker_state
+```
+
+## 🚀 Deployment
+
+### Quick Deploy to Staging
+```bash
+# One-command deployment
+./scripts/deploy.sh staging
+
+# With options
+./scripts/deploy.sh staging --skip-tests --dry-run
+```
+
+### Production Deployment
+```bash
+# Pre-deployment checks
+./scripts/migrate-db.sh production --dry-run
+./scripts/deploy.sh production --dry-run
+
+# Deploy
+./scripts/deploy.sh production
+
+# Verify health
+./scripts/health-check.sh production
+```
+
+### Emergency Rollback
+```bash
+# Rollback to previous version
+./scripts/rollback.sh production
+
+# Rollback to specific revision
+./scripts/rollback.sh production --revision 3
+```
+
+### Database Operations
+```bash
+# Backup
+./scripts/backup.sh production
+
+# Migration
+./scripts/migrate-db.sh production
+
+# Restore (if needed)
+./scripts/restore.sh production backups/production/backup_20240115.sql.gz
+```
+
+## 🔧 Troubleshooting
+
+Common issues and solutions:
+
+| Issue | Quick Fix |
+|-------|-----------|
+| Application won't start | Check `DATABASE_URL` and `JWT_SECRET_KEY` env vars |
+| Slow response times | Review database indexes, enable caching |
+| Circuit breaker open | Check upstream service health, wait for auto-recovery |
+| Deployment failed | Run `kubectl describe pod <name>` for details |
+| High memory usage | Generate heap dump: `jmap -dump:live,format=b,file=heap.hprof <PID>` |
+
+**Full Guide:** See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
+
+## ⚡ Performance Testing
+
+### Run Load Tests
+```bash
+# Gatling (Payment flow)
+cd performance-tests/gatling
+mvn gatling:test
+
+# JMeter (API load test)
+jmeter -n -t performance-tests/jmeter/api-load-test.jmx \
+  -l results/test.jtl \
+  -e -o results/report
+```
+
+### Performance Targets
+- **Response Time (p95):** < 500ms
+- **Throughput:** > 200 req/s
+- **Error Rate:** < 1%
+- **Concurrent Users:** 100+ (staging), 1000+ (production)
+
 ## 🔮 Features Ready for Extension
 
 - **OAuth2 Integration**: Structure in place
 - **Microservices**: Billing system ready for separation
 - **Real-time Notifications**: Event-driven architecture
+- **Multi-tenancy**: Database schema supports tenant isolation
+- **GraphQL API**: RESTful foundation ready for GraphQL layer
+- **Webhook Retry**: Event-driven system can add retry logic
 
 ## 🤝 Contributing
 

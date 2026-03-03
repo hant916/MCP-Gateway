@@ -1,0 +1,41 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: production
+
+resources:
+  - ../base/deployment.yaml
+  - ../base/service.yaml
+  - ../base/configmap.yaml
+  - ../base/secrets.yaml
+  - ../base/hpa.yaml
+  - ../base/ingress.yaml
+  - ../base/serviceaccount.yaml
+
+# Production-specific patches
+patchesStrategicMerge:
+  - deployment-patch.yaml
+
+# Production-specific replica count
+replicas:
+  - name: mcp-gateway
+    count: 5
+
+# Production-specific image tag
+images:
+  - name: ghcr.io/hant916/mcp-gateway
+    newTag: v1.0.0
+
+# Production-specific resource limits
+commonAnnotations:
+  environment: production
+  managed-by: kustomize
+
+configMapGenerator:
+  - name: mcp-gateway-config
+    behavior: merge
+    literals:
+      - log-level=WARN
+      - app-log-level=INFO
+      - rate-limit-global=50000
+      - rate-limit-per-user=5000

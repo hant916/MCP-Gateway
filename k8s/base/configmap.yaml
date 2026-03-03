@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mcp-gateway-config
+  labels:
+    app: mcp-gateway
+data:
+  # Redis Configuration
+  redis-host: "redis-master.default.svc.cluster.local"
+  redis-port: "6379"
+
+  # Zipkin Configuration
+  zipkin-endpoint: "http://zipkin.monitoring.svc.cluster.local:9411/api/v2/spans"
+
+  # Application Configuration
+  server-port: "8080"
+  management-port: "8081"
+
+  # Logging Configuration
+  log-level: "INFO"
+  app-log-level: "INFO"
+
+  # Rate Limiting
+  rate-limit-enabled: "true"
+  rate-limit-global: "10000"
+  rate-limit-per-user: "1000"
+
+  # Application properties
+  application.properties: |
+    # JVM Options
+    server.port=8080
+    management.server.port=8081
+
+    # Actuator
+    management.endpoints.web.exposure.include=health,info,metrics,prometheus
+    management.endpoint.health.show-details=when-authorized
+
+    # Graceful shutdown
+    server.shutdown=graceful
+    spring.lifecycle.timeout-per-shutdown-phase=30s
+
+    # Connection pool
+    spring.datasource.hikari.maximum-pool-size=20
+    spring.datasource.hikari.minimum-idle=5
+    spring.datasource.hikari.connection-timeout=20000
+    spring.datasource.hikari.idle-timeout=300000
+    spring.datasource.hikari.max-lifetime=1200000
+    spring.datasource.hikari.leak-detection-threshold=60000
+
+    # Circuit Breaker
+    resilience4j.circuitbreaker.instances.mcpServer.failure-rate-threshold=50
+    resilience4j.circuitbreaker.instances.mcpServer.wait-duration-in-open-state=10s
+
+    # Tracing
+    management.tracing.sampling.probability=0.1

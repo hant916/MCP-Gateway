@@ -1,0 +1,99 @@
+global:
+  resolve_timeout: 5m
+
+# Templates for notifications
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Route configuration
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  receiver: 'default'
+  routes:
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'critical'
+      continue: true
+
+    # Payment-related alerts - high priority
+    - match_re:
+        alertname: '.*Payment.*'
+      receiver: 'payment-team'
+      continue: true
+
+    # Infrastructure alerts
+    - match_re:
+        alertname: '(HighMemoryUsage|HighCPUUsage|DatabaseDown)'
+      receiver: 'infrastructure-team'
+      continue: true
+
+# Receivers configuration
+receivers:
+  # Default receiver
+  - name: 'default'
+    webhook_configs:
+      - url: 'http://localhost:8080/api/v1/webhooks/alerts'
+        send_resolved: true
+
+  # Critical alerts - multiple channels
+  - name: 'critical'
+    # Slack notification
+    slack_configs:
+      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+        channel: '#alerts-critical'
+        title: '🚨 Critical Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}\n{{ end }}'
+        send_resolved: true
+
+    # Email notification
+    email_configs:
+      - to: 'oncall@example.com'
+        from: 'alertmanager@example.com'
+        smarthost: 'smtp.example.com:587'
+        auth_username: 'alertmanager@example.com'
+        auth_password: 'YOUR_EMAIL_PASSWORD'
+        headers:
+          Subject: '🚨 [CRITICAL] MCP Gateway Alert'
+
+    # Webhook notification
+    webhook_configs:
+      - url: 'http://localhost:8080/api/v1/webhooks/alerts/critical'
+        send_resolved: true
+
+  # Payment team alerts
+  - name: 'payment-team'
+    slack_configs:
+      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+        channel: '#payment-alerts'
+        title: '💳 Payment Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}\n{{ end }}'
+        send_resolved: true
+
+  # Infrastructure team alerts
+  - name: 'infrastructure-team'
+    slack_configs:
+      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+        channel: '#infra-alerts'
+        title: '🔧 Infrastructure Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}\n{{ end }}'
+        send_resolved: true
+
+# Inhibit rules - prevent alert spam
+inhibit_rules:
+  # Inhibit warning if critical is firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
+
+  # If database is down, inhibit related alerts
+  - source_match:
+      alertname: 'DatabaseDown'
+    target_match_re:
+      alertname: '(SlowDatabaseQueries|HighDatabaseConnections)'
+    equal: ['instance']

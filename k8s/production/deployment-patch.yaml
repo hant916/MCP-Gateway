@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-gateway
+spec:
+  template:
+    spec:
+      containers:
+        - name: mcp-gateway
+          env:
+            # Production-specific environment variables
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+            - name: TRACING_SAMPLING_PROBABILITY
+              value: "0.1"  # 10% sampling in production
+            - name: LOG_LEVEL
+              value: "WARN"
+            - name: JAVA_OPTS
+              value: "-Xms1g -Xmx2g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/logs"
+
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "1000m"
+            limits:
+              memory: "2Gi"
+              cpu: "2000m"

@@ -4,9 +4,11 @@ import com.mcpgateway.domain.User;
 import com.mcpgateway.dto.auth.AuthenticationRequest;
 import com.mcpgateway.dto.auth.AuthenticationResponse;
 import com.mcpgateway.dto.auth.RegisterRequest;
+import com.mcpgateway.event.UserRegisteredEvent;
 import com.mcpgateway.repository.UserRepository;
 import com.mcpgateway.security.JwtService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,6 +22,7 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public AuthenticationResponse register(RegisterRequest request) {
@@ -34,9 +37,12 @@ public class AuthenticationService {
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        
+
         userRepository.save(user);
-        
+
+        // Publish domain event for async processing (welcome email, quota init, etc.)
+        eventPublisher.publishEvent(new UserRegisteredEvent(user));
+
         var jwtToken = jwtService.generateToken(user);
         return AuthenticationResponse.builder()
                 .token(jwtToken)
