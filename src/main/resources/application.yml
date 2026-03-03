@@ -186,8 +186,11 @@ management:
     custom:
       upstream-mcp-servers:
         enabled: true
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
 
-# Resilience4j Circuit Breaker Configuration
+# Resilience4j Circuit Breaker Configuration (native YAML)
 resilience4j:
   circuitbreaker:
     configs:
@@ -251,6 +254,35 @@ resilience4j:
         baseConfig: default
         timeoutDuration: 5s
 
+# Circuit Breaker Configuration (custom overrides)
+mcp.circuit-breaker:
+  enabled: ${CIRCUIT_BREAKER_ENABLED:true}
+  failure-rate-threshold: ${CIRCUIT_BREAKER_FAILURE_RATE:50}
+  slow-call-rate-threshold: ${CIRCUIT_BREAKER_SLOW_CALL_RATE:100}
+  slow-call-duration-threshold: ${CIRCUIT_BREAKER_SLOW_CALL_DURATION:2000}
+  permitted-calls-in-half-open: ${CIRCUIT_BREAKER_HALF_OPEN_CALLS:3}
+  sliding-window-size: ${CIRCUIT_BREAKER_WINDOW_SIZE:10}
+  minimum-number-of-calls: ${CIRCUIT_BREAKER_MIN_CALLS:5}
+  wait-duration-in-open-state: ${CIRCUIT_BREAKER_WAIT_DURATION:10000}
+
+# Retry Configuration
+mcp.retry:
+  max-attempts: ${RETRY_MAX_ATTEMPTS:3}
+  wait-duration: ${RETRY_WAIT_DURATION:500}
+
+# Timeout Configuration
+mcp.timeout:
+  duration: ${TIMEOUT_DURATION:5000}
+
+# Load Balancer Configuration
+mcp.load-balancer:
+  enabled: ${LOAD_BALANCER_ENABLED:true}
+  default-strategy: ${LOAD_BALANCER_STRATEGY:round-robin}
+  health-check:
+    enabled: ${LOAD_BALANCER_HEALTH_CHECK_ENABLED:true}
+    interval-seconds: ${LOAD_BALANCER_HEALTH_CHECK_INTERVAL:30}
+    unhealthy-threshold: ${LOAD_BALANCER_UNHEALTHY_THRESHOLD:3}
+
 # Caffeine Cache Configuration
 spring.cache:
   type: caffeine
@@ -264,16 +296,39 @@ spring.cache:
     - apiKeys
 
 # Distributed Tracing Configuration
+mcp.tracing:
+  enabled: ${TRACING_ENABLED:true}
+  sampling-probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+  exporter:
+    type: ${TRACING_EXPORTER_TYPE:zipkin}
+    endpoint: ${TRACING_EXPORTER_ENDPOINT:http://localhost:9411/api/v2/spans}
+
 management.tracing:
   sampling:
-    probability: ${TRACING_SAMPLING_PROBABILITY:1.0}  # 1.0 = 100% sampling (adjust in production)
+    probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
   enabled: ${TRACING_ENABLED:true}
 
 management.zipkin.tracing:
   endpoint: ${ZIPKIN_ENDPOINT:http://localhost:9411/api/v2/spans}
 
-# Spring application name for tracing
-spring.application.name: ${SPRING_APPLICATION_NAME:mcp-gateway}
-
 # Propagation settings
-management.tracing.propagation.type: B3  # Zipkin B3 propagation format 
+management.tracing.propagation.type: B3
+
+# Zipkin Configuration
+spring.zipkin:
+  enabled: ${ZIPKIN_ENABLED:true}
+  base-url: ${ZIPKIN_BASE_URL:http://localhost:9411}
+
+# StreamSafe Configuration
+mcp.stream:
+  enabled: ${STREAM_ENABLED:true}
+  max-latency-for-streaming-seconds: ${STREAM_MAX_LATENCY:20}
+  sse-timeout-ms: ${STREAM_SSE_TIMEOUT:300000}
+  first-byte-timeout-ms: ${STREAM_FIRST_BYTE_TIMEOUT:1000}
+  enable-sse-through-api-gateway: ${STREAM_ENABLE_SSE_API_GW:false}
+  enable-sse-through-cdn: ${STREAM_ENABLE_SSE_CDN:false}
+  buffer:
+    max-tokens: ${STREAM_BUFFER_MAX_TOKENS:10000}
+    max-bytes: ${STREAM_BUFFER_MAX_BYTES:10485760}
+  async:
+    result-ttl-ms: ${STREAM_ASYNC_RESULT_TTL:3600000}
