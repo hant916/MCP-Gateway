@@ -52,8 +52,31 @@ public class WebhookLog {
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
 
+    @Builder.Default
     @Column(name = "retry_count")
     private Integer retryCount = 0;
+
+    @Column(name = "next_retry_at")
+    private LocalDateTime nextRetryAt;
+
+    @Column(name = "claimed_at")
+    private LocalDateTime claimedAt;
+
+    @Column(name = "claimed_by", length = 255)
+    private String claimedBy;
+
+    @Builder.Default
+    @Column(name = "attempt_count")
+    private Integer attemptCount = 0;
+
+    @Column(name = "last_error_code", length = 64)
+    private String lastErrorCode;
+
+    @Column(name = "last_status")
+    private Integer lastStatus;
+
+    @Column(name = "last_error_message", columnDefinition = "TEXT")
+    private String lastErrorMessage;
 
     @Column(name = "duration_ms")
     private Long durationMs;
@@ -64,6 +87,7 @@ public class WebhookLog {
 
     public enum DeliveryStatus {
         PENDING,
+        IN_PROGRESS,
         SUCCESS,
         FAILURE,
         RETRYING

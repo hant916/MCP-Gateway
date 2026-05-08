@@ -4,6 +4,7 @@ import com.mcpgateway.domain.User;
 import com.mcpgateway.dto.auth.AuthenticationRequest;
 import com.mcpgateway.dto.auth.AuthenticationResponse;
 import com.mcpgateway.dto.auth.RegisterRequest;
+import com.mcpgateway.event.UserRegisteredEvent;
 import com.mcpgateway.repository.UserRepository;
 import com.mcpgateway.security.JwtService;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -38,6 +40,9 @@ class AuthenticationServiceTest {
 
     @Mock
     private AuthenticationManager authenticationManager;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private AuthenticationService authenticationService;
@@ -88,6 +93,7 @@ class AuthenticationServiceTest {
         verify(passwordEncoder).encode("password123");
         verify(userRepository).save(any(User.class));
         verify(jwtService).generateToken(any(User.class));
+        verify(eventPublisher).publishEvent(any(UserRegisteredEvent.class));
     }
 
     @Test

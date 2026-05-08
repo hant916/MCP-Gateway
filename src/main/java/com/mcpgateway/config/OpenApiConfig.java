@@ -114,6 +114,6 @@ public class OpenApiConfig {
                 .type(SecurityScheme.Type.HTTP)
                 .scheme("bearer")
                 .bearerFormat("JWT")
-                .description("JWT authentication token. Obtain from /api/v1/auth/login endpoint.");
+                .description("JWT authentication token. Obtain from /api/v1/auth/authenticate endpoint.");
     }
 }

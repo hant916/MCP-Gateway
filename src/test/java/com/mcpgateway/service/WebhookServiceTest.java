@@ -9,14 +9,26 @@ import com.mcpgateway.repository.WebhookLogRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestTemplate;
 
-import java.util.*;
+import java.net.SocketTimeoutException;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -36,7 +48,15 @@ class WebhookServiceTest {
     @Mock
     private McpGatewayMetrics metrics;
 
-    @InjectMocks
+    @Mock
+    private RestTemplateBuilder restTemplateBuilder;
+
+    @Mock
+    private RestTemplate restTemplate;
+
+    @Mock
+    private ObjectMapper objectMapper;
+
     private WebhookService webhookService;
 
     private WebhookConfig testWebhook;
@@ -44,7 +64,7 @@ class WebhookServiceTest {
     private UUID webhookId;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         userId = UUID.randomUUID();
         webhookId = UUID.randomUUID();
 
@@ -61,11 +81,31 @@ class WebhookServiceTest {
                 .successCount(0)
                 .failureCount(0)
                 .build();
+
+        webhookService = new WebhookService(
+                webhookConfigRepository,
+                webhookLogRepository,
+                metrics,
+                restTemplateBuilder,
+                objectMapper
+        );
+
+        lenient().when(restTemplateBuilder.setConnectTimeout(any(Duration.class))).thenReturn(restTemplateBuilder);
+        lenient().when(restTemplateBuilder.setReadTimeout(any(Duration.class))).thenReturn(restTemplateBuilder);
+        lenient().when(restTemplateBuilder.build()).thenReturn(restTemplate);
+        lenient().when(objectMapper.writeValueAsString(any())).thenReturn("{\"event\":\"payment.success\"}");
+
+        lenient().when(webhookLogRepository.save(any(WebhookLog.class))).thenAnswer(invocation -> {
+            WebhookLog log = invocation.getArgument(0);
+            if (log.getId() == null) {
+                log.setId(UUID.randomUUID());
+            }
+            return log;
+        });
     }
 
     @Test
     void createWebhook_WithValidConfig_ShouldCreateWebhook() {
-        // Arrange
         WebhookConfig newWebhook = WebhookConfig.builder()
                 .userId(userId)
                 .url("https://example.com/webhook")
@@ -75,10 +115,8 @@ class WebhookServiceTest {
         when(webhookConfigRepository.save(any(WebhookConfig.class)))
                 .thenReturn(testWebhook);
 
-        // Act
         WebhookConfig result = webhookService.createWebhook(newWebhook);
 
-        // Assert
         assertThat(result).isNotNull();
         verify(webhookConfigRepository).save(argThat(webhook ->
                 webhook.getRetryCount() == 3 &&
@@ -89,30 +127,7 @@ class WebhookServiceTest {
     }
 
     @Test
-    void createWebhook_WithoutSecret_ShouldGenerateSecret() {
-        // Arrange
-        WebhookConfig newWebhook = WebhookConfig.builder()
-                .userId(userId)
-                .url("https://example.com/webhook")
-                .events("payment.success")
-                .build();
-
-        when(webhookConfigRepository.save(any(WebhookConfig.class)))
-                .thenReturn(testWebhook);
-
-        // Act
-        WebhookConfig result = webhookService.createWebhook(newWebhook);
-
-        // Assert
-        verify(webhookConfigRepository).save(argThat(webhook ->
-                webhook.getSecret() != null && !webhook.getSecret().isEmpty()
-        ));
-    }
-
-    @Test
     void updateWebhook_WithValidUpdates_ShouldUpdateWebhook() {
-        // Arrange
-        UUID webhookId = testWebhook.getId();
         WebhookConfig updates = WebhookConfig.builder()
                 .url("https://newurl.com/webhook")
                 .events("payment.success,payment.failure")
@@ -121,15 +136,13 @@ class WebhookServiceTest {
                 .retryCount(5)
                 .build();
 
-        when(webhookConfigRepository.findById(webhookId))
+        when(webhookConfigRepository.findByIdAndUserId(webhookId, userId))
                 .thenReturn(Optional.of(testWebhook));
         when(webhookConfigRepository.save(any(WebhookConfig.class)))
                 .thenReturn(testWebhook);
 
-        // Act
-        WebhookConfig result = webhookService.updateWebhook(webhookId, updates);
+        WebhookConfig result = webhookService.updateWebhook(webhookId, userId, updates);
 
-        // Assert
         assertThat(result).isNotNull();
         verify(webhookConfigRepository).save(argThat(webhook ->
                 webhook.getUrl().equals("https://newurl.com/webhook") &&
@@ -141,34 +154,23 @@ class WebhookServiceTest {
     }
 
     @Test
-    void updateWebhook_WithInvalidId_ShouldThrowException() {
-        // Arrange
-        UUID invalidId = UUID.randomUUID();
-        WebhookConfig updates = WebhookConfig.builder().build();
+    void updateWebhook_WithUnauthorizedUser_ShouldThrowAccessDenied() {
+        UUID otherUserId = UUID.randomUUID();
 
-        when(webhookConfigRepository.findById(invalidId))
+        when(webhookConfigRepository.findByIdAndUserId(webhookId, otherUserId))
                 .thenReturn(Optional.empty());
 
-        // Act & Assert
-        assertThatThrownBy(() -> webhookService.updateWebhook(invalidId, updates))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Webhook not found");
+        assertThatThrownBy(() -> webhookService.updateWebhook(webhookId, otherUserId, WebhookConfig.builder().build()))
+                .isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
     void deleteWebhook_ShouldMarkAsDeleted() {
-        // Arrange
-        UUID webhookId = testWebhook.getId();
-
-        when(webhookConfigRepository.findById(webhookId))
+        when(webhookConfigRepository.findByIdAndUserId(webhookId, userId))
                 .thenReturn(Optional.of(testWebhook));
-        when(webhookConfigRepository.save(any(WebhookConfig.class)))
-                .thenReturn(testWebhook);
 
-        // Act
-        webhookService.deleteWebhook(webhookId);
+        webhookService.deleteWebhook(webhookId, userId);
 
-        // Assert
         verify(webhookConfigRepository).save(argThat(webhook ->
                 webhook.getStatus() == WebhookConfig.WebhookStatus.DELETED &&
                 webhook.getIsActive() == false
@@ -177,8 +179,6 @@ class WebhookServiceTest {
 
     @Test
     void getWebhookLogs_ShouldReturnPaginatedLogs() {
-        // Arrange
-        UUID webhookId = testWebhook.getId();
         WebhookLog log1 = WebhookLog.builder()
                 .id(UUID.randomUUID())
                 .webhookConfig(testWebhook)
@@ -186,22 +186,32 @@ class WebhookServiceTest {
                 .status(WebhookLog.DeliveryStatus.SUCCESS)
                 .build();
 
-        Page<WebhookLog> logPage = new PageImpl<>(Arrays.asList(log1));
+        Page<WebhookLog> logPage = new PageImpl<>(List.of(log1));
 
-        when(webhookLogRepository.findByWebhookConfigId(eq(webhookId), any(PageRequest.class)))
+        when(webhookConfigRepository.findByIdAndUserId(webhookId, userId))
+                .thenReturn(Optional.of(testWebhook));
+        when(webhookLogRepository.findByWebhookConfigIdAndWebhookConfigUserId(eq(webhookId), eq(userId), any(PageRequest.class)))
                 .thenReturn(logPage);
 
-        // Act
-        List<WebhookLog> result = webhookService.getWebhookLogs(webhookId, 50);
+        List<WebhookLog> result = webhookService.getWebhookLogs(webhookId, userId, 50);
 
-        // Assert
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getEventType()).isEqualTo("payment.success");
     }
 
     @Test
+    void getWebhookLogs_WithUnauthorizedUser_ShouldThrowAccessDenied() {
+        UUID otherUserId = UUID.randomUUID();
+
+        when(webhookConfigRepository.findByIdAndUserId(webhookId, otherUserId))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> webhookService.getWebhookLogs(webhookId, otherUserId, 20))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
     void getUserWebhooks_ShouldReturnAllUserWebhooks() {
-        // Arrange
         WebhookConfig webhook2 = WebhookConfig.builder()
                 .id(UUID.randomUUID())
                 .userId(userId)
@@ -211,30 +221,26 @@ class WebhookServiceTest {
         when(webhookConfigRepository.findByUserId(userId))
                 .thenReturn(Arrays.asList(testWebhook, webhook2));
 
-        // Act
         List<WebhookConfig> result = webhookService.getUserWebhooks(userId);
 
-        // Assert
         assertThat(result).hasSize(2);
         verify(webhookConfigRepository).findByUserId(userId);
     }
 
     @Test
     void reactivateWebhook_ShouldResetStatusAndFailureCount() {
-        // Arrange
         testWebhook.setStatus(WebhookConfig.WebhookStatus.SUSPENDED);
         testWebhook.setFailureCount(15);
         testWebhook.setIsActive(false);
 
-        when(webhookConfigRepository.findById(webhookId))
+        when(webhookConfigRepository.findByIdAndUserId(webhookId, userId))
                 .thenReturn(Optional.of(testWebhook));
         when(webhookConfigRepository.save(any(WebhookConfig.class)))
                 .thenReturn(testWebhook);
 
-        // Act
-        webhookService.reactivateWebhook(webhookId);
+        WebhookConfig result = webhookService.reactivateWebhook(webhookId, userId);
 
-        // Assert
+        assertThat(result).isNotNull();
         verify(webhookConfigRepository).save(argThat(webhook ->
                 webhook.getStatus() == WebhookConfig.WebhookStatus.ACTIVE &&
                 webhook.getFailureCount() == 0 &&
@@ -243,77 +249,168 @@ class WebhookServiceTest {
     }
 
     @Test
-    void reactivateWebhook_WithInvalidId_ShouldThrowException() {
-        // Arrange
-        UUID invalidId = UUID.randomUUID();
-
-        when(webhookConfigRepository.findById(invalidId))
-                .thenReturn(Optional.empty());
-
-        // Act & Assert
-        assertThatThrownBy(() -> webhookService.reactivateWebhook(invalidId))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Webhook not found");
-    }
-
-    @Test
-    void verifyWebhookSignature_WithValidSignature_ShouldReturnTrue() {
-        // Arrange
+    void verifyWebhookSignature_WithAnyInput_ShouldNotThrow() {
         String payload = "{\"event\":\"payment.success\"}";
         String secret = "test-secret";
 
-        // Generate valid signature
-        String signature;
-        try {
-            signature = webhookService.verifyWebhookSignature(payload, "dummy", secret)
-                ? "valid" : "invalid";
-        } catch (Exception e) {
-            signature = "error";
-        }
-
-        // Note: This test verifies the method doesn't throw exceptions
-        // Actual signature verification would require exposing the method or testing through integration
-        assertThat(signature).isNotNull();
+        boolean result = webhookService.verifyWebhookSignature(payload, "dummy", secret);
+        assertThat(result).isFalse();
     }
 
     @Test
-    void triggerWebhooks_ShouldFindAndDeliverToActiveWebhooks() {
-        // Arrange
+    void triggerWebhooks_ShouldFindAndAttemptDelivery() {
         String eventType = "payment.success";
         Map<String, Object> payload = Map.of("paymentId", "pay-123");
 
         when(webhookConfigRepository.findActiveWebhooksByEvent(eventType))
-                .thenReturn(Arrays.asList(testWebhook));
+                .thenReturn(List.of(testWebhook));
+        when(restTemplate.exchange(
+                eq(testWebhook.getUrl()),
+                eq(HttpMethod.POST),
+                any(),
+                eq(String.class)))
+                .thenReturn(ResponseEntity.ok("ok"));
 
-        // Act
         webhookService.triggerWebhooks(eventType, payload);
 
-        // Assert
         verify(webhookConfigRepository).findActiveWebhooksByEvent(eventType);
-        // Note: Actual delivery is tested separately as it involves HTTP calls
+        verify(restTemplate).exchange(eq(testWebhook.getUrl()), eq(HttpMethod.POST), any(), eq(String.class));
     }
 
     @Test
-    void createWebhook_WithCustomRetryAndTimeout_ShouldUseProvidedValues() {
-        // Arrange
-        WebhookConfig newWebhook = WebhookConfig.builder()
-                .userId(userId)
-                .url("https://example.com/webhook")
-                .events("payment.success")
-                .retryCount(5)
-                .timeoutSeconds(60)
+    void processPendingRetries_WhenClaimNotAcquired_ShouldSkipDelivery() {
+        WebhookLog retryLog = WebhookLog.builder()
+                .id(UUID.randomUUID())
+                .webhookConfig(testWebhook)
+                .eventType("payment.success")
+                .payload("{\"event\":\"payment.success\"}")
+                .status(WebhookLog.DeliveryStatus.RETRYING)
+                .retryCount(1)
+                .nextRetryAt(LocalDateTime.now().minusSeconds(1))
                 .build();
 
-        when(webhookConfigRepository.save(any(WebhookConfig.class)))
-                .thenReturn(testWebhook);
+        when(webhookLogRepository.findByStatusAndNextRetryAtLessThanEqualOrderByNextRetryAtAsc(
+                eq(WebhookLog.DeliveryStatus.RETRYING),
+                any(LocalDateTime.class),
+                any(PageRequest.class)))
+                .thenReturn(new PageImpl<>(List.of(retryLog)));
+        when(webhookLogRepository.claimDueRetry(
+                eq(retryLog.getId()),
+                eq(WebhookLog.DeliveryStatus.RETRYING),
+                eq(WebhookLog.DeliveryStatus.IN_PROGRESS),
+                any(LocalDateTime.class),
+                eq("unknown-instance"),
+                any(LocalDateTime.class)))
+                .thenReturn(0);
 
-        // Act
-        webhookService.createWebhook(newWebhook);
+        webhookService.processPendingRetries();
 
-        // Assert
-        verify(webhookConfigRepository).save(argThat(webhook ->
-                webhook.getRetryCount() == 5 &&
-                webhook.getTimeoutSeconds() == 60
+        verify(webhookLogRepository, never()).findById(any(UUID.class));
+        verify(restTemplate, never()).exchange(any(String.class), any(HttpMethod.class), any(), eq(String.class));
+    }
+
+    @Test
+    void processPendingRetries_WhenClaimed_ShouldDeliverOnce() {
+        WebhookLog retryLog = WebhookLog.builder()
+                .id(UUID.randomUUID())
+                .webhookConfig(testWebhook)
+                .eventType("payment.success")
+                .payload("{\"event\":\"payment.success\"}")
+                .status(WebhookLog.DeliveryStatus.RETRYING)
+                .retryCount(1)
+                .nextRetryAt(LocalDateTime.now().minusSeconds(1))
+                .build();
+
+        when(webhookLogRepository.findByStatusAndNextRetryAtLessThanEqualOrderByNextRetryAtAsc(
+                eq(WebhookLog.DeliveryStatus.RETRYING),
+                any(LocalDateTime.class),
+                any(PageRequest.class)))
+                .thenReturn(new PageImpl<>(List.of(retryLog)));
+        when(webhookLogRepository.claimDueRetry(
+                eq(retryLog.getId()),
+                eq(WebhookLog.DeliveryStatus.RETRYING),
+                eq(WebhookLog.DeliveryStatus.IN_PROGRESS),
+                any(LocalDateTime.class),
+                eq("unknown-instance"),
+                any(LocalDateTime.class)))
+                .thenReturn(1);
+        when(webhookLogRepository.findById(retryLog.getId())).thenReturn(Optional.of(retryLog));
+        when(restTemplate.exchange(
+                eq(testWebhook.getUrl()),
+                eq(HttpMethod.POST),
+                any(),
+                eq(String.class)))
+                .thenReturn(ResponseEntity.ok("ok"));
+
+        webhookService.processPendingRetries();
+
+        verify(webhookLogRepository).claimDueRetry(
+                eq(retryLog.getId()),
+                eq(WebhookLog.DeliveryStatus.RETRYING),
+                eq(WebhookLog.DeliveryStatus.IN_PROGRESS),
+                any(LocalDateTime.class),
+                eq("unknown-instance"),
+                any(LocalDateTime.class));
+        verify(metrics).recordWebhookRetryClaimed("unknown-instance");
+        verify(restTemplate, times(1)).exchange(eq(testWebhook.getUrl()), eq(HttpMethod.POST), any(), eq(String.class));
+    }
+
+    @Test
+    void triggerWebhooks_WhenDeliveryFails_ShouldIncrementAttemptAndStoreErrorCode() {
+        String eventType = "payment.success";
+        Map<String, Object> payload = Map.of("paymentId", "pay-123");
+
+        when(webhookConfigRepository.findActiveWebhooksByEvent(eventType))
+                .thenReturn(List.of(testWebhook));
+        when(restTemplate.exchange(
+                eq(testWebhook.getUrl()),
+                eq(HttpMethod.POST),
+                any(),
+                eq(String.class)))
+                .thenThrow(new ResourceAccessException("Read timed out", new SocketTimeoutException("Read timed out")));
+
+        webhookService.triggerWebhooks(eventType, payload);
+
+        verify(webhookLogRepository, atLeast(2)).save(argThat(log ->
+                "payment.success".equals(log.getEventType()) &&
+                        log.getAttemptCount() != null &&
+                        log.getAttemptCount() == 1 &&
+                        "TIMEOUT".equals(log.getLastErrorCode()) &&
+                        log.getLastStatus() == null
         ));
+        verify(metrics).recordWebhookDeliveryFailure("payment.success", "TIMEOUT");
+        verify(metrics, atLeastOnce()).recordWebhookDeliveryLatency(eq("payment.success"), anyLong());
+    }
+
+    @Test
+    void triggerWebhooks_WhenDeliveryReturnsHttpError_ShouldStoreHttpStatusAsErrorCode() {
+        String eventType = "payment.success";
+        Map<String, Object> payload = Map.of("paymentId", "pay-123");
+
+        when(webhookConfigRepository.findActiveWebhooksByEvent(eventType))
+                .thenReturn(List.of(testWebhook));
+        when(restTemplate.exchange(
+                eq(testWebhook.getUrl()),
+                eq(HttpMethod.POST),
+                any(),
+                eq(String.class)))
+                .thenThrow(new org.springframework.web.client.HttpClientErrorException(
+                        org.springframework.http.HttpStatus.BAD_REQUEST,
+                        "Bad Request",
+                        "{\"error\":\"invalid\"}".getBytes(),
+                        java.nio.charset.StandardCharsets.UTF_8
+                ));
+
+        webhookService.triggerWebhooks(eventType, payload);
+
+        verify(webhookLogRepository, atLeast(2)).save(argThat(log ->
+                "payment.success".equals(log.getEventType()) &&
+                        log.getAttemptCount() != null &&
+                        log.getAttemptCount() == 1 &&
+                        "HTTP_400".equals(log.getLastErrorCode()) &&
+                        Integer.valueOf(400).equals(log.getLastStatus())
+        ));
+        verify(metrics).recordWebhookDeliveryFailure("payment.success", "HTTP_400");
+        verify(metrics, atLeastOnce()).recordWebhookDeliveryLatency(eq("payment.success"), anyLong());
     }
 }

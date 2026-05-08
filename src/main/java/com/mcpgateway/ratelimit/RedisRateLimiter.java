@@ -45,14 +45,23 @@ public class RedisRateLimiter {
             local current = redis.call('ZCARD', key)
 
             if current + cost <= limit then
-                -- Add new entry with current timestamp
-                redis.call('ZADD', key, now, now)
-                redis.call('EXPIRE', key, window)
+                -- Add one unique member per consumed cost unit
+                local seqKey = key .. ':seq'
+                local baseSeq = redis.call('INCRBY', seqKey, cost)
+                for i = 0, cost - 1 do
+                    local member = tostring(now) .. '-' .. tostring(baseSeq - i)
+                    redis.call('ZADD', key, now, member)
+                end
+                redis.call('PEXPIRE', key, window)
+                redis.call('PEXPIRE', seqKey, window)
                 return {1, limit - current - cost, now + window}
             else
                 -- Rate limit exceeded
                 local oldest = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
-                local resetTime = tonumber(oldest[2]) + window
+                local resetTime = now + window
+                if oldest[2] ~= nil then
+                    resetTime = tonumber(oldest[2]) + window
+                end
                 return {0, 0, resetTime}
             end
             """;
@@ -249,6 +258,10 @@ public class RedisRateLimiter {
      */
     public long getCurrentUsage(String key) {
         try {
+            Long zsetCount = redisTemplate.opsForZSet().zCard(key);
+            if (zsetCount != null && zsetCount > 0) {
+                return zsetCount;
+            }
             String value = redisTemplate.opsForValue().get(key);
             return value != null ? Long.parseLong(value) : 0;
         } catch (Exception e) {

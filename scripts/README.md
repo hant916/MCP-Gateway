@@ -246,6 +246,60 @@ Restores database from backup file.
 
 ---
 
+### 7. `ailuros-v0.2-a-smoke.sh` - AILUROS Governance Smoke (curl set)
+
+Runs an end-to-end smoke flow for AILUROS v0.2-A:
+- seed baseline/candidate call events via `/api/ailuros/ingest`
+- configure budget policy
+- trigger budget evaluation
+- configure release baseline
+- run offline regression
+- verify governance incidents exist (`BUDGET_EXCEEDED`, `RELEASE_BLOCKED`)
+
+**Usage:**
+```bash
+./scripts/ailuros-v0.2-a-smoke.sh
+```
+
+**Optional environment overrides:**
+```bash
+BASE_URL=http://localhost:8080
+APP_ID=clarity
+ENV_NAME=prod
+ROUTE=/v1/chat/completions
+RANGE=7d
+```
+
+Windows PowerShell version:
+```powershell
+.\scripts\ailuros-v0.2-a-smoke.ps1
+```
+
+---
+
+### 8. `ailuros-dashboard-demo.ps1` - Windows Demo Launcher
+
+PowerShell demo launcher for investor-style walkthrough:
+- checks backend health
+- optionally runs the smoke script
+- prints live KPI/Budget/Release Gate snapshot
+- opens `ailuros-dashboard.html` with aligned query params
+- prints a 5-step demo checklist
+
+**Usage (PowerShell):**
+```powershell
+.\scripts\ailuros-dashboard-demo.ps1
+```
+
+**Options:**
+```powershell
+.\scripts\ailuros-dashboard-demo.ps1 -SkipSmoke
+.\scripts\ailuros-dashboard-demo.ps1 -NoBrowser
+.\scripts\ailuros-dashboard-demo.ps1 -BaseUrl http://localhost:8080 -AppId clarity -EnvName prod -Route /v1/chat/completions -Range 7d
+```
+
+---
+
 ## 🚀 Quick Start Guide
 
 ### Initial Setup

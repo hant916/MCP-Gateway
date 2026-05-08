@@ -99,6 +99,7 @@ public class PaymentController {
     public ResponseEntity<String> handleStripeWebhook(
             @RequestBody String payload,
             @RequestHeader("Stripe-Signature") String sigHeader) {
+        log.info("Processing Stripe webhook via legacy endpoint: /api/v1/payments/webhook");
 
         if (webhookSecret == null || webhookSecret.isEmpty()) {
             log.warn("Stripe webhook secret not configured");

@@ -462,4 +462,15 @@ public class AilurosControlController {
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("Ailuros Control v0.1 operational");
     }
+
+    /**
+     * Public health endpoint for anonymous readiness checks.
+     *
+     * GET /api/ailuros/public/health
+     */
+    @GetMapping("/public/health")
+    @Operation(summary = "Public health check", description = "Anonymous health check for Ailuros Control")
+    public ResponseEntity<String> publicHealth() {
+        return ResponseEntity.ok("Ailuros Control v0.1 operational");
+    }
 }

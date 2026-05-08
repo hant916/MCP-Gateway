@@ -13,13 +13,14 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.context.DelegatingSecurityContextRepository;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
+import org.springframework.http.HttpStatus;
 
 import java.util.Arrays;
 import java.util.List;
@@ -46,7 +47,7 @@ public class SecurityConfig {
                 ))
             )
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/auth/register", "/auth/authenticate").permitAll()
+                .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers(
                     "/",
                     "/index.html",
@@ -54,20 +55,23 @@ public class SecurityConfig {
                     "/favicon.ico",
                     "/error"
                 ).permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/ailuros/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/ailuros/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/ailuros/demo/generate").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/ailuros/ingest").permitAll()
                 .requestMatchers(
                     "/health/**",
                     "/api-docs/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html"
                 ).permitAll()
+                .requestMatchers(HttpMethod.POST, "/stripe/webhook").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/payments/webhook").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/ailuros/public/**").permitAll()
+                .requestMatchers("/api/ailuros/**").authenticated()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
             )
             .authenticationProvider(authenticationProvider)
             .addFilterBefore(apiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)

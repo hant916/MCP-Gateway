@@ -83,7 +83,7 @@ public class WebhookController {
                 .timeoutSeconds(request.getTimeoutSeconds())
                 .build();
 
-        WebhookConfig updated = webhookService.updateWebhook(webhookId, updates);
+        WebhookConfig updated = webhookService.updateWebhook(webhookId, user.getId(), updates);
         return ResponseEntity.ok(WebhookDTO.from(updated));
     }
 
@@ -94,7 +94,7 @@ public class WebhookController {
             @PathVariable UUID webhookId,
             @AuthenticationPrincipal User user) {
 
-        webhookService.deleteWebhook(webhookId);
+        webhookService.deleteWebhook(webhookId, user.getId());
         return ResponseEntity.ok().build();
     }
 
@@ -105,14 +105,7 @@ public class WebhookController {
             @PathVariable UUID webhookId,
             @AuthenticationPrincipal User user) {
 
-        webhookService.reactivateWebhook(webhookId);
-        // Fetch and return the updated webhook
-        List<WebhookConfig> webhooks = webhookService.getUserWebhooks(user.getId());
-        WebhookConfig reactivated = webhooks.stream()
-                .filter(w -> w.getId().equals(webhookId))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Webhook not found"));
-
+        WebhookConfig reactivated = webhookService.reactivateWebhook(webhookId, user.getId());
         return ResponseEntity.ok(WebhookDTO.from(reactivated));
     }
 
@@ -124,7 +117,7 @@ public class WebhookController {
             @RequestParam(defaultValue = "50") int limit,
             @AuthenticationPrincipal User user) {
 
-        List<WebhookLog> logs = webhookService.getWebhookLogs(webhookId, limit);
+        List<WebhookLog> logs = webhookService.getWebhookLogs(webhookId, user.getId(), limit);
         return ResponseEntity.ok(logs);
     }
 

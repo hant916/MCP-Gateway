@@ -1,6 +1,7 @@
 package com.mcpgateway.security;
 
 import com.mcpgateway.domain.User;
+import com.mcpgateway.repository.UserRepository;
 import com.mcpgateway.service.ApiKeyService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -10,8 +11,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -23,7 +22,7 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class ApiKeyAuthFilter extends OncePerRequestFilter {
     private final ApiKeyService apiKeyService;
-    private final UserDetailsService userDetailsService;
+    private final UserRepository userRepository;
     private static final String API_KEY_HEADER = "X-API-KEY";
 
     @Override
@@ -46,17 +45,21 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
         
         if (apiKey != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
-                User user = apiKeyService.validateApiKey(apiKey);
-                log.debug("API Key validation successful for user ID: {}", user.getId());
-                
-                UserDetails userDetails = userDetailsService.loadUserByUsername(user.getId().toString());
-                log.debug("Loaded user details for API Key user");
+                User apiKeyUser = apiKeyService.validateApiKey(apiKey);
+                User user = userRepository.findById(apiKeyUser.getId())
+                        .orElseThrow(() -> new IllegalArgumentException("User not found for API key"));
+
+                if (!user.isEnabled()) {
+                    log.debug("API key user {} is disabled", user.getId());
+                    filterChain.doFilter(request, response);
+                    return;
+                }
                 
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
-                                userDetails,
+                                user,
                                 null,
-                                userDetails.getAuthorities()
+                                user.getAuthorities()
                         );
                 
                 authentication.setDetails(
@@ -82,9 +85,15 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
 
         // Public authentication endpoints
         if (method.equals("POST") && (
-            path.endsWith("/auth/register") ||
-            path.endsWith("/auth/authenticate"))) {
+            path.equals("/api/v1/auth/register") ||
+            path.equals("/api/v1/auth/authenticate"))) {
             log.debug("Found public authentication endpoint");
+            return true;
+        }
+
+        if (method.equals("POST") &&
+            (path.equals("/stripe/webhook") || path.equals("/api/v1/payments/webhook"))) {
+            log.debug("Found public Stripe webhook endpoint");
             return true;
         }
 
@@ -102,9 +111,8 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
             return true;
         }
 
-        // Ailuros Control endpoints (demo and monitoring)
-        if (path.contains("/api/ailuros")) {
-            log.debug("Found public Ailuros Control endpoint");
+        if (method.equals("GET") && path.startsWith("/api/ailuros/public")) {
+            log.debug("Found public Ailuros endpoint");
             return true;
         }
 
@@ -118,7 +126,11 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
             return true;
         }
 
+        if (method.equals("OPTIONS")) {
+            return true;
+        }
+
         log.debug("Endpoint is not public");
         return false;
     }
-} 
+}

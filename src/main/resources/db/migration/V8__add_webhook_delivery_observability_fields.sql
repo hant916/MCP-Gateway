@@ -1,0 +1,17 @@
+ALTER TABLE IF EXISTS webhook_logs
+    ADD COLUMN IF NOT EXISTS claimed_at TIMESTAMP;
+
+ALTER TABLE IF EXISTS webhook_logs
+    ADD COLUMN IF NOT EXISTS claimed_by VARCHAR(255);
+
+ALTER TABLE IF EXISTS webhook_logs
+    ADD COLUMN IF NOT EXISTS attempt_count INTEGER DEFAULT 0;
+
+ALTER TABLE IF EXISTS webhook_logs
+    ADD COLUMN IF NOT EXISTS last_error_code VARCHAR(64);
+
+ALTER TABLE IF EXISTS webhook_logs
+    ADD COLUMN IF NOT EXISTS last_status INTEGER;
+
+ALTER TABLE IF EXISTS webhook_logs
+    ADD COLUMN IF NOT EXISTS last_error_message TEXT;

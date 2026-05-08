@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -29,6 +30,11 @@ public interface WebhookConfigRepository extends JpaRepository<WebhookConfig, UU
      * Find all webhooks for a user
      */
     List<WebhookConfig> findByUserId(UUID userId);
+
+    /**
+     * Find one webhook by id scoped to owner user id.
+     */
+    Optional<WebhookConfig> findByIdAndUserId(UUID id, UUID userId);
 
     /**
      * Count active webhooks for a user

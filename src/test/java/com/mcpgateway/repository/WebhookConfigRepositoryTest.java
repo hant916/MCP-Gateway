@@ -22,12 +22,14 @@ class WebhookConfigRepositoryTest {
     private WebhookConfigRepository webhookConfigRepository;
 
     private UUID userId;
+    private UUID otherUserId;
     private WebhookConfig activeWebhook;
     private WebhookConfig inactiveWebhook;
 
     @BeforeEach
     void setUp() {
         userId = UUID.randomUUID();
+        otherUserId = UUID.randomUUID();
 
         activeWebhook = WebhookConfig.builder()
                 .userId(userId)
@@ -57,6 +59,18 @@ class WebhookConfigRepositoryTest {
 
         entityManager.persist(activeWebhook);
         entityManager.persist(inactiveWebhook);
+        entityManager.persist(WebhookConfig.builder()
+                .userId(otherUserId)
+                .url("https://example.com/webhook3")
+                .secret("secret3")
+                .events("quota.exceeded")
+                .status(WebhookConfig.WebhookStatus.ACTIVE)
+                .isActive(true)
+                .retryCount(3)
+                .timeoutSeconds(30)
+                .successCount(0)
+                .failureCount(0)
+                .build());
         entityManager.flush();
     }
 
@@ -106,5 +120,17 @@ class WebhookConfigRepositoryTest {
 
         // Assert
         assertThat(count).isEqualTo(1);
+    }
+
+    @Test
+    void findByIdAndUserId_ShouldReturnOwnedWebhook() {
+        assertThat(webhookConfigRepository.findByIdAndUserId(activeWebhook.getId(), userId))
+                .isPresent();
+    }
+
+    @Test
+    void findByIdAndUserId_WithDifferentOwner_ShouldReturnEmpty() {
+        assertThat(webhookConfigRepository.findByIdAndUserId(activeWebhook.getId(), otherUserId))
+                .isEmpty();
     }
 }

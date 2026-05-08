@@ -1,0 +1,2 @@
+ALTER TABLE IF EXISTS webhook_logs
+    ADD COLUMN IF NOT EXISTS next_retry_at TIMESTAMP;

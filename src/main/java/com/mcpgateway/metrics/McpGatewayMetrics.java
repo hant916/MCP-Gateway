@@ -171,6 +171,39 @@ public class McpGatewayMetrics {
                 .record(durationMs, TimeUnit.MILLISECONDS);
     }
 
+    public void recordWebhookRetryClaimed(String claimedBy) {
+        Counter.builder("webhook.retry.claimed.count")
+                .tag("claimed_by", claimedBy != null ? claimedBy : "unknown")
+                .description("Webhook retries claimed for delivery")
+                .register(meterRegistry)
+                .increment();
+    }
+
+    public void recordWebhookDeliverySuccess(String webhookType) {
+        Counter.builder("webhook.delivery.success.count")
+                .tag("type", webhookType != null ? webhookType : "unknown")
+                .description("Successful webhook deliveries")
+                .register(meterRegistry)
+                .increment();
+    }
+
+    public void recordWebhookDeliveryFailure(String webhookType, String errorCode) {
+        Counter.builder("webhook.delivery.failure.count")
+                .tag("type", webhookType != null ? webhookType : "unknown")
+                .tag("error_code", errorCode != null ? errorCode : "UNKNOWN")
+                .description("Failed webhook deliveries")
+                .register(meterRegistry)
+                .increment();
+    }
+
+    public void recordWebhookDeliveryLatency(String webhookType, long durationMs) {
+        Timer.builder("webhook.delivery.latency.ms")
+                .tag("type", webhookType != null ? webhookType : "unknown")
+                .description("Webhook delivery latency in milliseconds")
+                .register(meterRegistry)
+                .record(durationMs, TimeUnit.MILLISECONDS);
+    }
+
     // Active connections gauge
     public void setActiveConnections(String transport, int count) {
         meterRegistry.gauge("mcp.connections.active",

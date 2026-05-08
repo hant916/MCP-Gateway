@@ -123,6 +123,12 @@ POST /api/v1/auth/authenticate
 }
 ```
 
+Security boundary notes:
+- `POST/PUT/PATCH/DELETE /api/ailuros/**` requires authentication.
+- `GET /api/ailuros/public/**` is anonymous read-only.
+- Stripe webhook endpoints are `POST /stripe/webhook` (canonical) and `POST /api/v1/payments/webhook` (legacy compatibility), both signature-verified.
+- Owner violations for user-scoped resources return `403 Forbidden`.
+
 ### 2. Register MCP Server
 ```bash
 POST /api/v1/mcp-server/register

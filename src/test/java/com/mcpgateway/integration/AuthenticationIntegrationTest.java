@@ -146,6 +146,21 @@ class AuthenticationIntegrationTest {
     }
 
     @Test
+    void authenticate_WithDisabledUser_ShouldReturnUnauthorized() throws Exception {
+        User user = new User();
+        user.setUsername("testuser");
+        user.setEmail("test@example.com");
+        user.setPassword(passwordEncoder.encode("password123"));
+        user.setIsActive(false);
+        userRepository.save(user);
+
+        mockMvc.perform(post("/api/v1/auth/authenticate")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(authRequest)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void fullAuthenticationFlow_RegisterAndAuthenticate_ShouldSucceed() throws Exception {
         // Register new user
         String registerResponse = mockMvc.perform(post("/api/v1/auth/register")

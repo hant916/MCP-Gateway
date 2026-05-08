@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Component
@@ -50,28 +51,41 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         final String jwt = authHeader.substring(7);
-        final String username = jwtService.extractUsername(jwt);
-        log.debug("Extracted username from JWT: {}", username);
+        try {
+            final String username = jwtService.extractUsername(jwt);
+            log.debug("Extracted username from JWT: {}", username);
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
-            log.debug("Loaded user details for username: {}", username);
-            
-            if (jwtService.isTokenValid(jwt, userDetails)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                    userDetails,
-                    null,
-                    userDetails.getAuthorities()
-                );
-                authToken.setDetails(
-                    new WebAuthenticationDetailsSource().buildDetails(request)
-                );
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-                log.debug("Successfully authenticated user: {}", username);
-            } else {
-                log.debug("Invalid JWT token for user: {}", username);
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+                log.debug("Loaded user details for username: {}", username);
+
+                if (!userDetails.isEnabled()) {
+                    writeUnauthorizedResponse(response, "User is disabled");
+                    return;
+                }
+
+                if (jwtService.isTokenValid(jwt, userDetails)) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                        userDetails,
+                        null,
+                        userDetails.getAuthorities()
+                    );
+                    authToken.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request)
+                    );
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                    log.debug("Successfully authenticated user: {}", username);
+                } else {
+                    writeUnauthorizedResponse(response, "Invalid JWT token");
+                    return;
+                }
             }
+        } catch (Exception ex) {
+            log.debug("JWT parsing/validation failed: {}", ex.getMessage());
+            writeUnauthorizedResponse(response, "Invalid JWT token");
+            return;
         }
+
         filterChain.doFilter(request, response);
     }
 
@@ -83,9 +97,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // Public authentication endpoints
         if (method.equals("POST") && (
-            path.endsWith("/auth/register") ||
-            path.endsWith("/auth/authenticate"))) {
+            path.equals("/api/v1/auth/register") ||
+            path.equals("/api/v1/auth/authenticate"))) {
             log.debug("Found public authentication endpoint");
+            return true;
+        }
+
+        if (method.equals("POST") &&
+            (path.equals("/stripe/webhook") || path.equals("/api/v1/payments/webhook"))) {
+            log.debug("Found public Stripe webhook endpoint");
             return true;
         }
 
@@ -103,9 +123,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return true;
         }
 
-        // Ailuros Control endpoints (demo and monitoring)
-        if (path.contains("/api/ailuros")) {
-            log.debug("Found public Ailuros Control endpoint");
+        if (method.equals("GET") && path.startsWith("/api/ailuros/public")) {
+            log.debug("Found public Ailuros endpoint");
             return true;
         }
 
@@ -119,7 +138,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return true;
         }
 
+        if (method.equals("OPTIONS")) {
+            return true;
+        }
+
         log.debug("Endpoint is not public");
         return false;
     }
-} 
+
+    private void writeUnauthorizedResponse(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.getWriter().write("{\"error\":\"" + message + "\"}");
+    }
+}
